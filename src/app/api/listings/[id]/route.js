@@ -1,9 +1,11 @@
 import { NextResponse } from 'next/server';
 import { getListingById, updateListing, deleteListing } from '@/lib/storage';
 
+export const runtime = 'edge';
+
 export async function GET(request, { params }) {
     const { id } = await params;
-    const listing = getListingById(id);
+    const listing = await getListingById(id);
     if (listing) {
         return NextResponse.json(listing);
     }
@@ -13,7 +15,7 @@ export async function GET(request, { params }) {
 export async function PUT(request, { params }) {
     const { id } = await params;
     const data = await request.json();
-    const updatedListing = updateListing(id, data);
+    const updatedListing = await updateListing(id, data);
     if (updatedListing) {
         return NextResponse.json(updatedListing);
     }
@@ -22,7 +24,7 @@ export async function PUT(request, { params }) {
 
 export async function DELETE(request, { params }) {
     const { id } = await params;
-    const success = deleteListing(id);
+    const success = await deleteListing(id);
     if (success) {
         return NextResponse.json({ success: true });
     }
