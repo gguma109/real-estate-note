@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS rentals (
     total_floor_area TEXT,
     sale_price TEXT,
     current_loan TEXT,
+    status TEXT DEFAULT '진행중',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );

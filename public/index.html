@@ -1215,8 +1215,15 @@
             empty.classList.add('hidden');
 
             list.innerHTML = rentals.map(r => {
-                const dateObj = r.date ? new Date(r.date) : new Date();
-                const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`;
+                const icons = {
+                    '원룸': '🏠', '1.5룸': '🏡', '투룸': '🏢', '쓰리룸': '🏢',
+                    '아파트': '🏢', '빌라': '🏘️', '주택': '🏠', '상가': '🏬',
+                    '건물': '🏗️', '토지': '🌳', '기타': '📦'
+                };
+                const icon = icons[r.type] || '🏠';
+                const status = r.status || '진행중';
+                const statusColor = status === '계약완료' ? 'bg-gray-400' : (status === '보류' ? 'bg-orange-400' : 'bg-darkgreen');
+
                 const addressPart = r.address ? `${r.address} ${r.room || ''}`.trim() : '주소 미입력';
                 const businessPart = r.business_name ? `(${r.business_name})` : '';
                 const title = `${addressPart} ${businessPart}`.trim() || '정보 미입력 매물';
@@ -1226,9 +1233,11 @@
                 const summary = `${depositStr}${rentStr}${premiumStr}`;
 
                 return `
-                <div class="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 p-4 cursor-pointer hover:border-darkgreen transition-colors active:scale-[0.98]" onclick="openRentalEditor('${r.id}')">
+                <div class="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 p-4 cursor-pointer hover:border-darkgreen transition-colors active:scale-[0.98] relative overflow-hidden" onclick="openRentalEditor('${r.id}')">
+                    <div class="absolute top-0 right-0 px-2 py-0.5 ${statusColor} text-white text-[0.6rem] font-black rounded-bl-lg">${status}</div>
                     <div class="flex justify-between items-start mb-2">
                         <div class="flex items-center gap-2 overflow-hidden">
+                            <span class="text-lg">${icon}</span>
                             <span class="text-xs font-black px-2 py-0.5 rounded bg-green-50 text-darkgreen whitespace-nowrap border border-green-100">${r.type || '원룸'}</span>
                             <h3 class="font-black text-gray-800 text-[1.1rem] truncate">${title}</h3>
                         </div>
@@ -1265,10 +1274,20 @@
                                 <option value="빌라" ${r.type === '빌라' ? 'selected' : ''}>빌라</option>
                                 <option value="주택" ${r.type === '주택' ? 'selected' : ''}>주택</option>
                                 <option value="상가" ${r.type === '상가' ? 'selected' : ''}>상가</option>
+                                <option value="건물" ${r.type === '건물' ? 'selected' : ''}>건물</option>
                                 <option value="기타" ${r.type === '기타' ? 'selected' : ''}>기타</option>
                             </select>
+                            <div class="h-4 w-[1px] bg-gray-200 mx-1"></div>
+                            <select class="rental-input rental-select text-[0.8rem] font-bold text-gray-600 bg-transparent outline-none py-1" data-field="status">
+                                <option value="진행중" ${r.status === '진행중' ? 'selected' : ''}>진행중</option>
+                                <option value="계약완료" ${r.status === '계약완료' ? 'selected' : ''}>계약완료</option>
+                                <option value="보류" ${r.status === '보류' ? 'selected' : ''}>보류</option>
+                            </select>
                         </div>
-                        <button onclick="deleteRental('${r.id}')" class="text-red-400 hover:text-red-500 font-bold text-xs px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 shadow-sm active:scale-95 transition-all">의뢰서 삭제</button>
+                        <div class="flex gap-2">
+                            <button onclick="copyToClipboard('${r.id}')" class="text-darkgreen hover:text-white hover:bg-darkgreen font-bold text-xs px-3 py-1.5 rounded-lg border border-green-100 bg-green-50 shadow-sm active:scale-95 transition-all">카톡 복사</button>
+                            <button onclick="deleteRental('${r.id}')" class="text-red-400 hover:text-red-500 font-bold text-xs px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 shadow-sm active:scale-95 transition-all">의뢰서 삭제</button>
+                        </div>
                     </div>
                     <div class="p-4 space-y-4">
                         <div class="grid grid-cols-2 gap-3">
@@ -1300,13 +1319,13 @@
                                 <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">공급면적</label>
                                 <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 33.1㎡ / 10평" data-field="supply_area" value="${r.supply_area || ''}">
                             </div>
-                            <div class="col-span-1">
-                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">대지면적</label>
-                                <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 100㎡" data-field="land_area" value="${r.land_area || ''}">
+                            <div class="col-span-1 area-field ${['주택', '상가', '건물'].includes(r.type) ? '' : 'hidden'}">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">대지면적 (㎡)</label>
+                                <input type="text" inputmode="decimal" class="rental-input area-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="0.0" data-field="land_area" value="${r.land_area || ''}">
                             </div>
-                            <div class="col-span-1">
-                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">연면적</label>
-                                <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 200㎡" data-field="total_floor_area" value="${r.total_floor_area || ''}">
+                            <div class="col-span-1 area-field ${['주택', '상가', '건물'].includes(r.type) ? '' : 'hidden'}">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">연면적 (㎡)</label>
+                                <input type="text" inputmode="decimal" class="rental-input area-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="0.0" data-field="total_floor_area" value="${r.total_floor_area || ''}">
                             </div>
                             <div class="col-span-2 grid grid-cols-2 gap-3 pt-1 border-t border-gray-100 mt-1">
                                 <div class="col-span-1">
@@ -1411,6 +1430,25 @@
                     const field = e.target.getAttribute('data-field');
                     let value = e.target.value;
 
+                    // '건물', '주택', '상가'일 때만 대지/연면적 노출
+                    if (field === 'type') {
+                        const areaFields = editorEl.querySelectorAll('.area-field');
+                        const isVisible = ['주택', '상가', '건물'].includes(value);
+                        areaFields.forEach(f => {
+                            if (isVisible) f.classList.remove('hidden');
+                            else f.classList.add('hidden');
+                        });
+                    }
+
+                    // 면적 입력 시 자동 평수 계산 문구 업데이트
+                    if (e.target.classList.contains('area-input')) {
+                        const num = parseFloat(value.replace(/[^0-9.]/g, ''));
+                        if (!isNaN(num)) {
+                            const pyeong = (num * 0.3025).toFixed(1);
+                            e.target.title = `${pyeong}평`;
+                        }
+                    }
+
                     if (e.target.classList.contains('money-input')) {
                         // Check if the input is during Korean IME composition to prevent clearing the entire field
                         if (e.isComposing) return;
@@ -1481,6 +1519,28 @@
             document.getElementById('rental-list-view').classList.remove('hidden');
             // 에디터 닫을 때 목록에 변경사항 즉시 반영
             renderRentals();
+        }
+
+        async function copyToClipboard(id) {
+            const r = rentals.find(item => item.id === id);
+            if (!r) return;
+
+            const premiumStr = r.premium ? `\n- 권리금: ${r.premium}만원` : '';
+            const rentStr = r.rent ? `\n- 월세: ${r.rent}만원` : (r.yearly_rent ? `\n- 년세: ${r.yearly_rent}만원` : '');
+            const maintenanceStr = r.maintenance ? `\n- 관리비: ${r.maintenance}만원` : '';
+            const addressStr = r.address ? `\n- 위치: ${r.address} ${r.room || ''}` : '';
+            const areaStr = r.exclusive_area ? `\n- 면적: ${r.exclusive_area}` : '';
+            const optionsStr = r.options ? `\n- 옵션: ${r.options}` : '';
+            const noteStr = r.special_notes ? `\n- 특이사항: ${r.special_notes}` : '';
+
+            const text = `[${r.type} 매물정보]\n- 상태: ${r.status || '진행중'}\n- 가격: 보증금 ${r.deposit || 0}만원${rentStr}${premiumStr}${maintenanceStr}${addressStr}${areaStr}${optionsStr}${noteStr}\n\n문의 부탁드립니다. 😊`;
+
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('카톡 공유용 텍스트가 복사되었습니다!');
+            } catch (err) {
+                alert('복사 실패: ' + err);
+            }
         }
 
         // --- 2.5 자유노트 (Notes) 로직 ---

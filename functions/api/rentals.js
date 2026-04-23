@@ -55,15 +55,16 @@ export async function onRequestPost(context) {
 
         await env.DB.prepare(`
             INSERT OR REPLACE INTO rentals 
-            (id, user_id, type, date, movein, address, room, deposit, premium, rent, yearly_rent, maintenance, inc_internet, inc_tv, inc_water, options, special_notes, phone, common_pwd, unit_pwd, business_name, exclusive_area, supply_area, land_area, total_floor_area, sale_price, current_loan)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, user_id, type, date, movein, address, room, deposit, premium, rent, yearly_rent, maintenance, inc_internet, inc_tv, inc_water, options, special_notes, phone, common_pwd, unit_pwd, business_name, exclusive_area, supply_area, land_area, total_floor_area, sale_price, current_loan, status)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             id, token, body.type, body.date, body.movein, body.address, body.room,
             body.deposit, body.premium, body.rent, body.yearly_rent, body.maintenance,
             body.inc_internet ? 1 : 0, body.inc_tv ? 1 : 0, body.inc_water ? 1 : 0,
             body.options, body.special_notes, body.phone, body.common_pwd, body.unit_pwd,
             body.business_name, body.exclusive_area, body.supply_area,
-            body.land_area, body.total_floor_area, body.sale_price, body.current_loan
+            body.land_area, body.total_floor_area, body.sale_price, body.current_loan,
+            body.status || '진행중'
         ).run();
 
         return new Response(JSON.stringify({ success: true, id }), {
