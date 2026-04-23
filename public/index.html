@@ -1131,6 +1131,7 @@
                 options: '', special_notes: '', phone: '', common_pwd: '', unit_pwd: '',
                 business_name: '', exclusive_area: '', supply_area: '',
                 land_area: '', total_floor_area: '', sale_price: '', current_loan: '',
+                completion_date: '', building_config: '', total_deposit: '', total_monthly_income: '', loan_interest_rate: '',
                 status: '진행중'
             };
 
@@ -1386,7 +1387,63 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="col-span-2">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 건물 매매 전용 투자 분석 항목 -->
+                            <div class="col-span-2 grid grid-cols-2 gap-3 pt-3 border-t-2 border-dashed border-gray-200 mt-2 building-field ${['건물', '상가'].includes(r.type) ? '' : 'hidden'}">
+                                <div class="col-span-2 bg-indigo-50 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-md mb-1 inline-block w-max">
+                                    📊 건물/상가 수익률 분석표
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">준공일</label>
+                                    <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-700 font-medium" placeholder="예: 2020-05-15" data-field="completion_date" value="${r.completion_date || ''}">
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">세대수 구성</label>
+                                    <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 상가 1, 투룸 2" data-field="building_config" value="${r.building_config || ''}">
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">총 보증금 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">총보</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input calc-trigger w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg text-sm font-black text-gray-800 pl-10 text-right" placeholder="0.0" data-field="total_deposit" value="${r.total_deposit || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">월 총수입 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">총수</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input calc-trigger w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg text-sm font-black text-gray-800 pl-10 text-right" placeholder="0.0" data-field="total_monthly_income" value="${r.total_monthly_income || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">대출 금리 (%)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute right-4 text-gray-400 text-sm font-black select-none pointer-events-none">%</span>
+                                        <input type="text" inputmode="decimal" class="rental-input calc-trigger w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg text-sm font-black text-gray-800 text-right pr-8" placeholder="예: 4.5" data-field="loan_interest_rate" value="${r.loan_interest_rate || ''}">
+                                    </div>
+                                </div>
+                                
+                                <!-- 자동 계산 결과 영역 -->
+                                <div class="col-span-2 bg-indigo-50/50 rounded-xl p-4 mt-2 border border-indigo-100 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs font-bold text-gray-500">실투자금</span>
+                                        <span class="text-sm font-black text-indigo-900" id="calc-investment">0만원</span>
+                                    </div>
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs font-bold text-gray-500">월 순수익 (이자 제외)</span>
+                                        <span class="text-sm font-black text-indigo-900" id="calc-net-income">0만원</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pt-2 border-t border-indigo-200">
+                                        <span class="text-sm font-black text-indigo-800">예상 수익률</span>
+                                        <span class="text-lg font-black text-red-600" id="calc-yield">0.0%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-span-2 mt-2">
                                 <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">관리비 (만원)</label>
                                 <div class="relative flex items-center">
                                     <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">관</span>
@@ -1453,6 +1510,13 @@
                             if (isVisible) f.classList.remove('hidden');
                             else f.classList.add('hidden');
                         });
+                        
+                        const buildingFields = editorEl.querySelectorAll('.building-field');
+                        const isBuilding = ['상가', '건물'].includes(value);
+                        buildingFields.forEach(f => {
+                            if (isBuilding) f.classList.remove('hidden');
+                            else f.classList.add('hidden');
+                        });
                     }
 
                     // 면적 입력 시 자동 평수 계산 문구 업데이트
@@ -1462,6 +1526,11 @@
                             const pyeong = (num * 0.3025).toFixed(1);
                             e.target.title = `${pyeong}평`;
                         }
+                    }
+
+                    // 수익률 자동 계산 로직
+                    if (e.target.classList.contains('calc-trigger') || field === 'sale_price' || field === 'current_loan') {
+                        setTimeout(() => calculateROI(editorEl), 50);
                     }
 
                     if (e.target.classList.contains('money-input')) {
@@ -1496,6 +1565,9 @@
                 });
             });
 
+            // 초기 수익률 계산
+            calculateROI(editorEl);
+
             editorEl.querySelectorAll('.rental-check').forEach(el => {
                 el.addEventListener('change', (e) => {
                     const card = e.target.closest('[data-id]');
@@ -1505,6 +1577,38 @@
                     updateRental(id, field, e.target.checked);
                 });
             });
+        }
+
+        function calculateROI(editorEl) {
+            const getVal = (field) => {
+                const el = editorEl.querySelector(`[data-field="${field}"]`);
+                if(!el) return 0;
+                return parseFloat(el.value.replace(/[^0-9.-]/g, '')) || 0;
+            };
+
+            const salePrice = getVal('sale_price'); // 매매가
+            const loan = getVal('current_loan'); // 융자
+            const totalDeposit = getVal('total_deposit'); // 총보증금
+            const monthlyIncome = getVal('total_monthly_income'); // 총월세
+            const interestRate = getVal('loan_interest_rate'); // 이자율(%)
+
+            const actualInvestment = salePrice - loan - totalDeposit;
+            const annualInterest = loan * (interestRate / 100);
+            const monthlyInterest = annualInterest / 12;
+            const netMonthlyIncome = monthlyIncome - monthlyInterest;
+            
+            let roi = 0;
+            if (actualInvestment > 0) {
+                roi = ((netMonthlyIncome * 12) / actualInvestment) * 100;
+            }
+
+            const invEl = editorEl.querySelector('#calc-investment');
+            const netEl = editorEl.querySelector('#calc-net-income');
+            const roiEl = editorEl.querySelector('#calc-yield');
+
+            if(invEl) invEl.innerText = actualInvestment.toLocaleString() + '만원';
+            if(netEl) netEl.innerText = Math.round(netMonthlyIncome).toLocaleString() + '만원';
+            if(roiEl) roiEl.innerText = roi.toFixed(1) + '%';
         }
 
         async function handleRentalSaveClick() {
@@ -1548,7 +1652,16 @@
             const optionsStr = r.options ? `\n- 옵션: ${r.options}` : '';
             const noteStr = r.special_notes ? `\n- 특이사항: ${r.special_notes}` : '';
 
-            const text = `[${r.type} 매물정보]\n- 상태: ${r.status || '진행중'}\n- 가격: 보증금 ${r.deposit || 0}만원${rentStr}${premiumStr}${maintenanceStr}${addressStr}${areaStr}${optionsStr}${noteStr}\n\n문의 부탁드립니다. 😊`;
+            let buildingStr = '';
+            if (['건물', '상가'].includes(r.type)) {
+                const salePrice = parseFloat(r.sale_price) || 0;
+                const loan = parseFloat(r.current_loan) || 0;
+                const totalDeposit = parseFloat(r.total_deposit) || 0;
+                const actualInv = salePrice - loan - totalDeposit;
+                buildingStr = `\n\n[📊 수익률 분석]\n- 준공일: ${r.completion_date || '-'}\n- 세대구성: ${r.building_config || '-'}\n- 총보증금: ${r.total_deposit || 0}만원\n- 실투자금: ${actualInv}만원\n- 총월수입: ${r.total_monthly_income || 0}만원\n- 수익률(예상): 현장 문의`;
+            }
+
+            const text = `[${r.type} 매물정보]\n- 상태: ${r.status || '진행중'}\n- 가격: 보증금 ${r.deposit || 0}만원${rentStr}${premiumStr}${maintenanceStr}${addressStr}${areaStr}${optionsStr}${noteStr}${buildingStr}\n\n문의 부탁드립니다. 😊`;
 
             try {
                 await navigator.clipboard.writeText(text);
