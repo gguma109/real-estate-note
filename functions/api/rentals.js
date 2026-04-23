@@ -14,7 +14,8 @@ export async function onRequestGet(context) {
     // and this worker MUST verify the JWT signature using google-auth-library or similar.
     // Due to environment constraints here, we are doing a simplified auth check.
 
-    const token = request.headers.get('Authorization')?.split('Bearer ')[1];
+    const authHeader = request.headers.get('Authorization') || '';
+    const token = authHeader.replace(/bearer /i, '').trim();
 
     if (!token) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
@@ -35,7 +36,8 @@ export async function onRequestGet(context) {
 
 export async function onRequestPost(context) {
     const { request, env } = context;
-    const token = request.headers.get('Authorization')?.split('Bearer ')[1];
+    const authHeader = request.headers.get('Authorization') || '';
+    const token = authHeader.replace(/bearer /i, '').trim();
 
     if (!token) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
@@ -77,7 +79,8 @@ export async function onRequestPost(context) {
 
 export async function onRequestDelete(context) {
     const { request, env } = context;
-    const token = request.headers.get('Authorization')?.split('Bearer ')[1];
+    const authHeader = request.headers.get('Authorization') || '';
+    const token = authHeader.replace(/bearer /i, '').trim();
 
     if (!token) {
         return new Response(JSON.stringify({ error: "Unauthorized" }), { status: 401 });
