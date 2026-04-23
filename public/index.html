@@ -1104,13 +1104,17 @@
             document.getElementById('rental-empty').classList.add('hidden');
 
             const data = await fetchWithAuth('/api/rentals');
+            
+            if (data && data.error) {
+                alert('데이터 로드 실패: ' + data.error);
+            }
 
             document.getElementById('loadingIndicator').classList.add('hidden');
 
             if (data && Array.isArray(data)) {
                 rentals = data;
             } else {
-                rentals = []; // fetch fail fallback to empty array
+                rentals = [];
             }
             renderRentals();
         }
