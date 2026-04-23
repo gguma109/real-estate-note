@@ -1,0 +1,1890 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>부동산 통합 관리 앱</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Google Identity Services (Real Login) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E3A8A',
+                        secondary: '#3B82F6',
+                        accent: '#2563EB',
+                        graybg: '#F3F4F6',
+                        darkgreen: '#064E3B',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 라디오 버튼 커스텀 */
+        input[type="radio"][value="normal"]:checked+label {
+            background-color: #2563EB;
+            color: white;
+            border-color: #2563EB;
+        }
+
+        input[type="radio"][value="issue"]:checked+label {
+            background-color: #EF4444;
+            color: white;
+            border-color: #EF4444;
+        }
+
+        input[type="radio"]:not([value="normal"]):not([value="issue"]):checked+label {
+            background-color: #2563EB;
+            color: white;
+            border-color: #2563EB;
+        }
+
+        /* 모바일용 체크박스 */
+        .check-pill input:checked+div {
+            background-color: #1E3A8A !important;
+            color: white !important;
+            border-color: #1E3A8A !important;
+            font-weight: 700 !important;
+        }
+
+        /* Select 드롭다운 */
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1rem 1rem;
+        }
+
+        .rental-select {
+            background-position: right 0.5rem center;
+            padding-right: 1.5rem !important;
+        }
+
+        /* 인쇄 최적화 */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background-color: white !important;
+                padding-bottom: 0 !important;
+            }
+
+            #capture-area {
+                max-width: 100% !important;
+                box-shadow: none !important;
+            }
+
+            input,
+            textarea,
+            select {
+                border: 1px solid #e5e7eb !important;
+                background: transparent !important;
+                resize: none;
+            }
+
+            .border-b {
+                border-bottom: 1px solid #e5e7eb !important;
+            }
+
+            section,
+            .page-break-inside-avoid {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+        }
+
+        /* 폰트 크기/높이 강제 고정 (모바일 축소 방지) */
+        input[type="text"],
+        input[type="number"],
+        input[type="datetime-local"],
+        input[type="date"],
+        input[type="tel"],
+        select,
+        textarea {
+            font-size: 15px !important;
+            line-height: 1.5 !important;
+            padding-top: 0.65rem !important;
+            padding-bottom: 0.65rem !important;
+            min-height: 44px !important;
+            box-sizing: border-box;
+            vertical-align: middle;
+        }
+
+        #checklist-container input[type="text"] {
+            font-size: 14px !important;
+            padding-top: 0.4rem !important;
+            padding-bottom: 0.4rem !important;
+            min-height: 38px !important;
+        }
+
+        textarea {
+            min-height: 80px !important;
+            padding: 0.75rem !important;
+        }
+
+        label {
+            line-height: 1.5 !important;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border-left-color: #1E3A8A;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800 font-sans antialiased pb-28">
+
+    <div id="app" class="max-w-md mx-auto bg-white min-h-screen shadow-md relative">
+
+        <!-- SECTION 1: LOGIN -->
+        <div id="view-login"
+            class="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-6 absolute inset-0 z-50">
+            <div class="w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-gray-100 pt-12 pb-14">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-50 rounded-full mb-4">
+                    <span class="text-3xl">📱</span>
+                </div>
+                <h1 class="text-2xl font-black text-primary mb-2">부동산 통합 관리 앱</h1>
+                <p class="text-sm text-gray-500 mb-8 font-medium">안전하고 빠른 관리를 위해 로그인해주세요.</p>
+
+                <!-- Google 로그인 렌더링 영역 -->
+                <div id="g_id_onload"
+                    data-client_id="555437749423-ge2amot938lnbech4141o9cdogbcrvrr.apps.googleusercontent.com"
+                    data-context="signin" data-ux_mode="popup" data-callback="handleCredentialResponse"
+                    data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
+                    data-text="signin_with" data-size="large" data-logo_alignment="left" data-width="280">
+                </div>
+                <!-- 사용자안내: Client ID 교체 전 표시 -->
+                <p id="auth-notice" class="text-xs text-red-500 mt-4 hidden">
+                    ※ 구글 클라이언트 ID가 "YOUR_GOOGLE_CLIENT_ID"로 설정되어 있습니다.
+                    소스로 돌아가 자신의 고유 ID로 변경해야 완벽한 로그인이 작동합니다.
+                </p>
+                <div class="mt-8 text-xs text-gray-400">
+                    <button onclick="mockDevLogin()" class="underline">[개발자 테스트용 임시 접속하기]</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: MAIN VIEW -->
+        <div id="view-main" class="hidden min-h-screen flex-col bg-gray-50">
+            <!-- Header & Tabs -->
+            <div class="sticky top-0 z-40 bg-white shadow-sm no-print">
+                <header class="bg-primary text-white p-4 flex justify-between items-center">
+                    <h1 class="text-[1.1rem] font-bold tracking-wide flex items-center gap-2">🏢 부동산 통합 관리 앱 <span
+                            id="user-display"
+                            class="text-[0.7rem] font-medium ml-1 opacity-80 cursor-pointer hover:underline"
+                            title="클릭하여 닉네임 변경" onclick="changeNickname()"></span></h1>
+                    <button onclick="handleLogout()"
+                        class="text-xs text-blue-200 hover:text-white font-bold bg-blue-800/50 px-3 py-1.5 rounded-md transition-colors">로그아웃</button>
+                </header>
+                <div class="flex border-b border-gray-200">
+                    <button onclick="switchTab('moveout')" id="tab-moveout"
+                        class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-primary border-primary transition-all">퇴실확인서</button>
+                    <button onclick="switchTab('rental')" id="tab-rental"
+                        class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2">중개의뢰서
+                        <span id="sync-icon" class="hidden w-2 h-2 rounded-full bg-green-500"></span></button>
+                    <button onclick="switchTab('notes')" id="tab-notes"
+                        class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2">메모장
+                        <span id="sync-icon-notes" class="hidden w-2 h-2 rounded-full bg-green-500"></span></button>
+                </div>
+            </div>
+
+            <!-- ===== TAB: 퇴실확인서 ===== -->
+            <div id="content-moveout" class="flex-1 flex flex-col bg-white">
+                
+                <!-- Moveout List View -->
+                <div id="moveout-list-view" class="flex-1 overflow-y-auto p-4 relative bg-gray-50 pb-24">
+                    <div id="loadingIndicatorMoveout" class="hidden justify-center items-center py-10 flex-col gap-3">
+                        <div class="spinner"></div>
+                        <p class="text-xs text-gray-500 font-bold">클라우드에서 데이터를 불러오는 중...</p>
+                    </div>
+
+                    <div id="moveout-list" class="space-y-3"></div>
+                    
+                    <div id="moveout-empty" class="text-center py-24 hidden">
+                        <div class="text-5xl mb-4 opacity-30">🗂️</div>
+                        <p class="text-gray-500 font-bold mb-1">등록된 퇴실확인서가 없습니다.</p>
+                        <p class="text-gray-400 text-sm">하단의 + 버튼을 눌러 퇴실확인서를 등록하세요.</p>
+                    </div>
+
+                    <!-- FAB Add Button -->
+                    <button onclick="addMoveout()"
+                        class="fixed bottom-6 right-6 w-14 h-14 bg-primary text-white rounded-full shadow-[0_4px_14px_0_rgba(30,58,138,0.39)] flex flex-col items-center justify-center text-3xl font-light hover:bg-[#1e3a8a] active:scale-90 transition-all z-50">
+                        <span class="mt-[-2px]">+</span>
+                    </button>
+                </div>
+
+                <!-- Moveout Editor View -->
+                <div id="moveout-editor-view" class="hidden flex-1 flex flex-col bg-white animate-fade-in-down pb-20">
+                    <div class="bg-gray-50 border-b border-gray-200 p-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+                        <button onclick="closeMoveoutEditor()"
+                            class="text-gray-500 font-bold text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 shadow-sm active:scale-95 transition-all flex items-center gap-1">
+                            <span>◀</span> 뒤로
+                        </button>
+                        <div class="font-bold text-gray-800 text-sm">퇴실확인서 편집</div>
+                        <button onclick="saveMoveoutToCloud()"
+                            class="text-primary font-bold text-sm px-4 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 shadow-sm active:scale-95 transition-all">
+                            클라우드 저장
+                        </button>
+                    </div>
+                    
+                    <div id="moveout-editor-content" class="flex-1 overflow-y-auto bg-white">
+                        <input type="hidden" id="moveout-id">
+                        <div id="capture-area" class="bg-white">
+                            <header class="bg-blue-50/50 text-blue-900 border-b border-blue-100 p-4 text-center">
+                                <h1 class="text-xl font-bold tracking-wider">퇴실 확인서</h1>
+                            </header>
+                            <form id="moveout-form" class="p-4 space-y-6">
+                        <!-- 1. 기본 정보 -->
+                        <section class="bg-blue-50/50 p-4 rounded-xl shadow-sm border border-blue-100">
+                            <h2 class="text-lg font-bold text-primary mb-4 border-b border-blue-200 pb-2">📋 기본 정보</h2>
+                            <div class="space-y-5">
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">계약 형태</label>
+                                    <div class="flex gap-2">
+                                        <input type="radio" id="contract-expiry" name="contract-type" class="hidden"
+                                            checked>
+                                        <label for="contract-expiry"
+                                            class="flex-1 text-center py-3 border border-gray-300 bg-white rounded-lg cursor-pointer text-sm font-medium transition-colors shadow-sm">만기</label>
+                                        <input type="radio" id="contract-early" name="contract-type" class="hidden">
+                                        <label for="contract-early"
+                                            class="flex-1 text-center py-3 border border-gray-300 bg-white rounded-lg cursor-pointer text-sm font-medium transition-colors shadow-sm">기간전</label>
+                                    </div>
+                                </div>
+                                <div>
+                                    <label class="block text-sm font-semibold text-gray-700 mb-2">방 형태</label>
+                                    <select name="room_type"
+                                        class="w-full p-3 border border-gray-300 rounded-lg bg-white focus:outline-none focus:ring-2 focus:ring-accent text-sm shadow-sm">
+                                        <option value="원룸">원룸</option>
+                                        <option value="1.5룸">1.5룸</option>
+                                        <option value="투룸">투룸</option>
+                                        <option value="쓰리룸">쓰리룸</option>
+                                        <option value="복층">복층</option>
+                                    </select>
+                                </div>
+                                <div class="grid grid-cols-2 gap-3">
+                                    <div class="col-span-1">
+                                        <label class="block text-xs font-semibold text-gray-600 mb-1">원룸명</label>
+                                        <input type="text" name="building_name"
+                                            class="w-full p-3 border border-gray-300 bg-white rounded-lg focus:ring-2 focus:ring-accent shadow-sm text-sm"
+                                            placeholder="예: 해피하우스">
+                                    </div>
+                                    <div class="col-span-1">
+                                        <label class="block text-xs font-semibold text-gray-600 mb-1">호실</label>
+                                        <input type="text" name="room"
+                                            class="w-full p-3 border border-gray-300 bg-white rounded-lg focus:ring-2 focus:ring-accent shadow-sm text-sm"
+                                            placeholder="예: 201호">
+                                    </div>
+                                    <div class="col-span-2">
+                                        <label class="block text-xs font-semibold text-gray-600 mb-1">주소</label>
+                                        <input type="text" name="address"
+                                            class="w-full p-3 border border-gray-300 bg-white rounded-lg focus:ring-2 focus:ring-accent shadow-sm text-sm"
+                                            placeholder="상세 주소 입력">
+                                    </div>
+                                    <div class="col-span-2">
+                                        <label class="block text-xs font-semibold text-gray-600 mb-1">퇴실일시</label>
+                                        <input type="datetime-local" name="moveout_date"
+                                            class="w-full p-3 border border-gray-300 bg-white rounded-lg focus:ring-2 focus:ring-accent shadow-sm text-sm">
+                                    </div>
+                                    <div class="col-span-2">
+                                        <label class="block text-xs font-semibold text-gray-600 mb-1">세입자명</label>
+                                        <input type="text" name="tenant_name"
+                                            class="w-full p-3 border border-gray-300 bg-white rounded-lg focus:ring-2 focus:ring-accent shadow-sm text-sm"
+                                            placeholder="세입자 실명">
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        <!-- 2. 시설물 및 가전 점검 체크리스트 -->
+                        <section
+                            class="bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200 page-break-inside-avoid">
+                            <h2 class="text-lg font-bold text-primary mb-4 border-b border-gray-200 pb-2">🔍 점검 (시설물/가전)
+                            </h2>
+                            <div class="grid grid-cols-2 gap-2" id="checklist-container"></div>
+                        </section>
+                        <!-- 3. 공과금 및 정산 내역 -->
+                        <section class="bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200">
+                            <h2 class="text-lg font-bold text-primary mb-4 border-b border-gray-200 pb-2">💸 공과금 및 정산
+                            </h2>
+                            <div class="space-y-4">
+                                <div class="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                                    <h3 class="font-bold text-blue-800 mb-3 text-sm flex items-center gap-1">⚡ 전기 내역
+                                    </h3>
+                                    <div class="grid grid-cols-2 gap-3 mb-4">
+                                        <div>
+                                            <label class="block text-xs text-gray-500 mb-1 font-medium">계량기 지침</label>
+                                            <input type="number"
+                                                class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-accent text-sm"
+                                                placeholder="지침 숫자">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-500 mb-1 font-medium">요금 (원)</label>
+                                            <input type="text" inputmode="numeric" oninput="formatNumberField(this)"
+                                                class="w-full p-2.5 border border-gray-300 rounded-md focus:ring-2 focus:ring-accent text-sm text-right font-semibold"
+                                                placeholder="금액 입력">
+                                        </div>
+                                    </div>
+                                    <label class="block text-xs text-gray-500 mb-2 font-medium">요금 부담 주체</label>
+                                    <div class="flex gap-2">
+                                        <input type="radio" id="elec-owner" name="elec-payer" class="hidden"><label
+                                            for="elec-owner"
+                                            class="flex-1 text-center py-2.5 border border-gray-300 rounded-md cursor-pointer text-xs font-semibold bg-gray-50">건물주</label>
+                                        <input type="radio" id="elec-tenant" name="elec-payer" class="hidden"
+                                            checked><label for="elec-tenant"
+                                            class="flex-1 text-center py-2.5 border border-gray-300 rounded-md cursor-pointer text-xs font-semibold bg-gray-50">세입자</label>
+                                        <input type="radio" id="elec-mgmt" name="elec-payer" class="hidden"><label
+                                            for="elec-mgmt"
+                                            class="flex-1 text-center py-2.5 border border-gray-300 rounded-md cursor-pointer text-xs font-semibold bg-gray-50">관리실</label>
+                                    </div>
+                                </div>
+                                <div class="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                                    <h3 class="font-bold text-orange-600 mb-3 text-sm flex items-center gap-1">🔥 도시가스
+                                        내역</h3>
+                                    <div class="grid grid-cols-2 gap-3 mb-4">
+                                        <div>
+                                            <label class="block text-xs text-gray-500 mb-1 font-medium">계량기 지침</label>
+                                            <input type="number"
+                                                class="w-full p-2.5 border border-gray-300 rounded-md text-sm"
+                                                placeholder="지침 숫자">
+                                        </div>
+                                        <div>
+                                            <label class="block text-xs text-gray-500 mb-1 font-medium">요금 (원)</label>
+                                            <input type="text" inputmode="numeric" oninput="formatNumberField(this)"
+                                                class="w-full p-2.5 border border-gray-300 rounded-md text-sm text-right font-semibold"
+                                                placeholder="금액 입력">
+                                        </div>
+                                    </div>
+                                    <label class="block text-xs text-gray-500 mb-2 font-medium">요금 부담 주체</label>
+                                    <div class="flex gap-2">
+                                        <input type="radio" id="gas-owner" name="gas-payer" class="hidden"><label
+                                            for="gas-owner"
+                                            class="flex-1 text-center py-2.5 border border-gray-300 rounded-md cursor-pointer text-xs font-semibold bg-gray-50">건물주</label>
+                                        <input type="radio" id="gas-tenant" name="gas-payer" class="hidden"
+                                            checked><label for="gas-tenant"
+                                            class="flex-1 text-center py-2.5 border border-gray-300 rounded-md cursor-pointer text-xs font-semibold bg-gray-50">세입자</label>
+                                        <input type="radio" id="gas-mgmt" name="gas-payer" class="hidden"><label
+                                            for="gas-mgmt"
+                                            class="flex-1 text-center py-2.5 border border-gray-300 rounded-md cursor-pointer text-xs font-semibold bg-gray-50">관리실</label>
+                                    </div>
+                                </div>
+                                <div class="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                                    <h3 class="font-bold text-green-700 mb-3 text-sm flex items-center gap-1">💰 정산 계좌
+                                    </h3>
+                                    <div class="space-y-3">
+                                        <div><label
+                                                class="block text-xs text-gray-500 mb-1 font-medium">은행명</label><input
+                                                type="text" name="refund_bank"
+                                                class="w-full p-2.5 border border-gray-300 rounded-md text-sm"
+                                                placeholder="예: 국민, 신한, 등 단위 입력"></div>
+                                        <div><label
+                                                class="block text-xs text-gray-500 mb-1 font-medium">계좌번호</label><input
+                                                type="number" name="refund_account"
+                                                class="w-full p-2.5 border border-gray-300 rounded-md text-sm"
+                                                placeholder="'-' 제외 숫자만 입력"></div>
+                                    </div>
+                                </div>
+                                <div class="p-4 bg-white rounded-lg border border-gray-200 shadow-sm">
+                                    <h3 class="font-bold text-purple-700 mb-3 text-sm flex items-center gap-1">🧾 비용 정산
+                                    </h3>
+                                    <div class="grid grid-cols-2 gap-4">
+                                        <div><label class="block text-xs text-gray-500 mb-1 font-medium">보증금/월세
+                                                (원)</label><input type="text" inputmode="numeric" id="cost-deposit"
+                                                oninput="formatAndCalc(this)"
+                                                class="w-full p-2.5 border border-gray-300 rounded-md text-sm text-right font-bold text-blue-700"
+                                                placeholder="0"></div>
+                                        <div><label class="block text-xs text-gray-500 mb-1 font-medium">설비 비용
+                                                (원)</label><input type="text" inputmode="numeric" id="cost-facility"
+                                                oninput="formatAndCalc(this)"
+                                                class="w-full p-2.5 border border-gray-300 rounded-md text-sm text-right text-red-500 font-semibold"
+                                                placeholder="0"></div>
+                                        <div><label class="block text-xs text-gray-500 mb-1 font-medium">도배 비용
+                                                (원)</label><input type="text" inputmode="numeric" id="cost-wallpaper"
+                                                oninput="formatAndCalc(this)"
+                                                class="w-full p-2.5 border border-gray-300 rounded-md text-sm text-right text-red-500 font-semibold"
+                                                placeholder="0"></div>
+                                        <div><label class="block text-xs text-gray-500 mb-1 font-medium">청소 비용
+                                                (원)</label><input type="text" inputmode="numeric" id="cost-cleaning"
+                                                oninput="formatAndCalc(this)"
+                                                class="w-full p-2.5 border border-gray-300 rounded-md text-sm text-right text-red-500 font-semibold"
+                                                placeholder="0"></div>
+                                    </div>
+                                    <div class="mt-4 pt-4 border-t border-gray-200">
+                                        <div
+                                            class="flex justify-between items-center bg-blue-50/80 p-3.5 rounded-lg border border-blue-100 shadow-sm">
+                                            <span class="font-bold text-sm text-blue-900 tracking-tight">💰 최종 반환
+                                                금액</span>
+                                            <span id="final-amount"
+                                                class="font-bold text-xl text-blue-700 tracking-wide">0 원</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </section>
+                        <!-- 4. 최하단 -->
+                        <section
+                            class="bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200 page-break-inside-avoid">
+                            <div class="space-y-4">
+                                <div>
+                                    <h2 class="text-sm font-bold text-gray-800 mb-2">📌 특이사항</h2><textarea rows="4" name="special_notes"
+                                        class="w-full p-3 border border-gray-300 rounded-lg text-sm shadow-sm"
+                                        placeholder="기타 특이사항을 상세히 기록해주세요"></textarea>
+                                </div>
+                                <div class="flex items-center justify-between border-t border-gray-300 pt-5 mt-4">
+                                    <div class="flex-1 mr-4"><label
+                                            class="block text-xs text-gray-500 mb-1 font-medium">관리업체</label><input
+                                            type="text" name="mgmt_company"
+                                            class="w-full p-2.5 border border-gray-300 bg-white rounded-md text-sm"
+                                            placeholder="업체명 직접 입력"></div>
+                                    <div class="flex flex-col items-end w-36"><label
+                                            class="block text-xs text-gray-500 mb-1 font-medium">확인자 서명</label><input
+                                            type="text" name="reviewer_sign"
+                                            class="w-full p-2.5 border border-gray-300 bg-white rounded-md text-sm text-right font-bold text-gray-800"
+                                            placeholder="이름 입력"></div>
+                                </div>
+                            </div>
+                        </section>
+                        <!-- 5. 계약서 사본 -->
+                        <section
+                            class="bg-gray-50 p-4 rounded-xl shadow-sm border border-gray-200 page-break-inside-avoid">
+                            <h2 class="text-sm font-bold text-gray-800 mb-3">📄 계약서 첨부 <span
+                                    class="text-xs text-gray-500 font-normal ml-1">(선택사항)</span></h2>
+                            <div class="no-print mb-2 flex items-center gap-2">
+                                <label for="contract-image-upload"
+                                    class="cursor-pointer bg-white border border-gray-300 text-gray-700 text-sm py-2.5 px-4 rounded-lg shadow-sm hover:bg-gray-50 font-semibold flex-1 text-center">이미지
+                                    첨부하기</label>
+                                <input type="file" id="contract-image-upload" accept="image/*" class="hidden" />
+                            </div>
+                            <div id="contract-image-preview" class="hidden mt-4 w-full flex flex-col items-center">
+                            </div>
+                        </section>
+                    </form>
+                </div>
+                <!-- 하단 고정 프린트용 버튼 -->
+                <div id="bottom-bar-moveout" class="p-4 bg-gray-50 border-t border-gray-200 mt-4 no-print">
+                    <div class="grid grid-cols-2 gap-3">
+                        <button type="button" onclick="window.print()"
+                            class="w-full bg-accent hover:bg-blue-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition-transform active:scale-95 flex justify-center items-center gap-2 text-[1.05rem]"><svg
+                                xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
+                            </svg>PDF 저장</button>
+                        <button type="button" onclick="saveAsJpeg()"
+                            class="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-3.5 rounded-xl shadow-sm transition-transform active:scale-95 flex justify-center items-center gap-2 text-[1.05rem]"><svg
+                                xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24"
+                                stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                    d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>JPEG 저장</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+            <!-- ===== TAB: 중개의뢰서 (목록/상세 분리 구조) ===== -->
+            <div id="content-rental" class="hidden flex-1 flex flex-col bg-white">
+                
+                <!-- Rental List View -->
+                <div id="rental-list-view" class="flex-1 overflow-y-auto p-4 relative bg-gray-50 pb-24">
+                    <div id="loadingIndicator" class="hidden justify-center items-center py-10 flex-col gap-3">
+                        <div class="spinner"></div>
+                        <p class="text-xs text-gray-500 font-bold">클라우드에서 데이터를 불러오는 중...</p>
+                    </div>
+
+                    <div id="rental-list" class="space-y-3"></div>
+                    
+                    <!-- Empty State -->
+                    <div id="rental-empty" class="text-center py-24 hidden">
+                        <div class="text-5xl mb-4 opacity-30">🗂️</div>
+                        <p class="text-gray-500 font-bold mb-1">등록된 중개의뢰서 내용이 없습니다.</p>
+                        <p class="text-gray-400 text-sm">하단의 + 버튼을 눌러 새 매물을 등록하세요.</p>
+                    </div>
+
+                    <!-- FAB Add Button -->
+                    <button onclick="addRental()"
+                        class="fixed bottom-6 right-6 w-14 h-14 bg-darkgreen text-white rounded-full shadow-[0_4px_14px_0_rgba(6,78,59,0.39)] flex flex-col items-center justify-center text-3xl font-light hover:bg-[#042f2e] active:scale-90 transition-all z-50">
+                        <span class="mt-[-2px]">+</span>
+                    </button>
+                </div>
+
+                <!-- Rental Editor View -->
+                <div id="rental-editor-view" class="hidden flex-1 flex flex-col bg-white animate-fade-in-down pb-20">
+                    <div class="bg-gray-50 border-b border-gray-200 p-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+                        <button onclick="closeRentalEditor()"
+                            class="text-gray-500 font-bold text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 shadow-sm active:scale-95 transition-all flex items-center gap-1">
+                            <span>◀</span> 뒤로
+                        </button>
+                        <div class="font-bold text-gray-800 text-sm">중개의뢰서 편집</div>
+                        <button onclick="handleRentalSaveClick()"
+                            class="text-darkgreen font-bold text-sm px-4 py-1.5 rounded-lg border border-green-200 bg-green-50 hover:bg-green-100 shadow-sm active:scale-95 transition-all">
+                            완료
+                        </button>
+                    </div>
+                    
+                    <div id="rental-editor-content" class="p-4 flex-1 overflow-y-auto bg-white">
+                        <!-- 에디터 폼 영역 (JS로 렌더) -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: 메모장 ===== -->
+            <div id="content-notes" class="hidden flex-1 flex flex-col bg-white">
+                <!-- Notes List View -->
+                <div id="notes-list-view" class="flex-1 overflow-y-auto p-4 relative">
+                    <div id="loadingIndicatorNotes" class="hidden justify-center items-center py-10 flex-col gap-3">
+                        <div class="spinner"></div>
+                        <p class="text-xs text-gray-500 font-bold">노트 불러오는 중...</p>
+                    </div>
+
+                    <div id="notes-list" class="space-y-3"></div>
+
+                    <div id="notes-empty" class="text-center py-24 hidden">
+                        <div class="text-5xl mb-4 opacity-30">📝</div>
+                        <p class="text-gray-500 font-bold mb-1">작성된 노트가 없습니다.</p>
+                        <p class="text-gray-400 text-sm">하단의 + 버튼을 눌러 새 노트를 작성하세요.</p>
+                    </div>
+
+                    <button onclick="createNote()"
+                        class="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] flex flex-col items-center justify-center text-2xl hover:bg-blue-700 active:scale-90 transition-all z-50">
+                        ✍️
+                    </button>
+                </div>
+
+                <!-- Note Editor View (Evernote Style) -->
+                <div id="note-editor-view"
+                    class="hidden flex-1 flex flex-col bg-white animate-fade-in-down h-[calc(100vh-120px)]">
+                    <div
+                        class="bg-gray-50 border-b border-gray-200 p-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+                        <button onclick="closeNoteEditor()"
+                            class="text-gray-500 font-bold text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 shadow-sm active:scale-95 transition-all flex items-center gap-1">
+                            <span>◀</span> 뒤로
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <label
+                                class="flex items-center gap-2 text-xs font-bold text-gray-600 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                                <span id="share-status-text">공유 끄기</span>
+                                <div class="relative inline-block w-8 h-4 rounded-full bg-gray-300 transition-colors duration-200 ease-in-out"
+                                    id="share-toggle-bg">
+                                    <input type="checkbox" id="note-share-toggle" class="opacity-0 w-0 h-0"
+                                        onchange="toggleNoteShare(this)">
+                                    <span
+                                        class="absolute left-0.5 top-0.5 bg-white w-3 h-3 rounded-full transition-transform duration-200 ease-in-out"
+                                        id="share-toggle-dot"></span>
+                                </div>
+                            </label>
+                            <button onclick="deleteCurrentNote()"
+                                class="text-red-500 font-bold text-sm px-3 py-1.5 rounded-lg border border-red-200 bg-white hover:bg-red-50 shadow-sm active:scale-95 transition-all">삭제</button>
+                        </div>
+                    </div>
+
+                    <div class="p-5 flex-1 flex flex-col overflow-y-auto">
+                        <input type="hidden" id="editor-note-id">
+                        <input type="text" id="editor-note-title"
+                            class="w-full text-2xl font-black text-gray-800 placeholder-gray-300 border-none outline-none bg-transparent mb-4 p-0"
+                            placeholder="제목 없는 노트" oninput="debouncedSaveNote()">
+                        <div
+                            class="text-xs text-gray-400 mb-6 flex justify-between items-center pb-3 border-b border-gray-100">
+                            <span id="editor-note-date"></span>
+                            <span id="editor-note-share-link" class="text-blue-500 hidden cursor-pointer"
+                                onclick="copyShareLink()">🔗 링크 복사</span>
+                        </div>
+                        <textarea id="editor-note-content"
+                            class="w-full flex-1 text-[15px] leading-relaxed text-gray-700 placeholder-gray-300 border-none outline-none bg-transparent resize-none p-0"
+                            placeholder="자유롭게 내용을 작성하세요..." oninput="debouncedSaveNote()"></textarea>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+    </div>
+
+    <!-- ===== TAB: 공유 뷰 (Read-only) ===== -->
+    <div id="view-shared"
+        class="hidden min-h-screen flex-col bg-white px-5 py-8 animate-fade-in-down w-full absolute top-0 left-0 z-50">
+        <div class="max-w-md mx-auto w-full">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-50 rounded-full mb-6">
+                <span class="text-2xl">👀</span>
+            </div>
+            <h1 id="shared-note-title" class="text-2xl font-black text-gray-800 mb-3 leading-tight">불러오는 중...
+            </h1>
+            <div class="text-xs text-gray-500 mb-8 pb-4 border-b border-gray-100 flex items-center gap-2">
+                <span id="shared-note-author" class="font-bold bg-gray-100 px-2 py-1 rounded"></span>
+                <span id="shared-note-date"></span>
+            </div>
+            <div id="shared-note-content"
+                class="text-[15px] leading-relaxed text-gray-700 whitespace-pre-wrap break-words min-h-[50vh]">
+            </div>
+
+            <div class="mt-12 pt-6 border-t border-gray-100 text-center">
+                <button onclick="window.location.href='/'"
+                    class="text-sm font-bold text-blue-600 bg-blue-50 px-5 py-2.5 rounded-full hover:bg-blue-100 transition-colors">이
+                    웹앱으로 관리 시작하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 스크립트: 인증 및 클라우드 연동 -->
+    <script>
+        // --- 1. 상태, 인증 및 네비게이션 관리 ---
+        let currentUserId = null;
+        let currentUserEmail = null;
+        let isSyncing = false;
+
+        // Notes State
+        let notes = [];
+        let noteSyncTimeout = null;
+
+        document.addEventListener('DOMContentLoaded', () => {
+            initMoveoutChecklist();
+
+            // Check for Shared View First
+            const urlParams = new URLSearchParams(window.location.search);
+            const shareId = urlParams.get('share_id');
+            if (shareId) {
+                renderSharedView(shareId);
+                return; // Stop standard app initialization
+            }
+
+            checkLoginState();
+
+            // Check Google Client ID
+            const gDiv = document.getElementById('g_id_onload');
+            if (gDiv && gDiv.dataset.client_id === 'YOUR_GOOGLE_CLIENT_ID') {
+                const notice = document.getElementById('auth-notice');
+                if (notice) notice.classList.remove('hidden');
+            }
+        });
+
+        // 사용자가 Google 로그인 성공 시 트리거됩니다.
+        function handleCredentialResponse(response) {
+            // 이 JWT 토큰 내부 정보를 기반으로 본인 인증을 수행합니다.
+            const credential = response.credential;
+
+            try {
+                // Parse JWT (Header.Payload.Signature)
+                const payloadStr = atob(credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'));
+                const payload = JSON.parse(payloadStr);
+
+                // 고유 ID(sub)를 사용
+                currentUserId = payload.sub;
+                currentUserEmail = payload.email;
+
+                // 세션스토리지에 안전하게 관리 (창 닫으면 로그아웃) - 실제 환경에서는 쿠키 권장
+                localStorage.setItem('auth_token', currentUserId);
+                localStorage.setItem('user_email', currentUserEmail);
+
+                // 최초에는 이메일로 렌더하지만 곧바로 profile API 호출로 덮어씌움
+                document.getElementById('user-display').innerText = currentUserEmail.split('@')[0] + ' 님';
+
+                checkLoginState();
+                loadUserProfile();
+
+            } catch (e) {
+                console.error("JWT Parsing Error", e);
+                alert("로그인 처리 중 오류가 발생했습니다.");
+            }
+        }
+
+        // 구글 OAuth 설정 이전에 디자인 및 개발 테스트용으로 바로 넘어갈 수 있는 우회 키
+        function mockDevLogin() {
+            currentUserId = 'mock_user_123';
+            currentUserEmail = 'test@example.com';
+            localStorage.setItem('auth_token', currentUserId);
+            localStorage.setItem('user_email', currentUserEmail);
+            document.getElementById('user-display').innerText = 'Test 님';
+            checkLoginState();
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_email');
+            currentUserId = null;
+            currentUserEmail = null;
+            rentals = [];
+            checkLoginState();
+            // Google Logout (optional reset)
+            if (window.google) {
+                google.accounts.id.disableAutoSelect();
+            }
+        }
+
+        function checkLoginState() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('share_id')) return; // 공유 뷰에서는 메인 뷰로 전환하지 않음
+
+            const token = localStorage.getItem('auth_token');
+            const vLogin = document.getElementById('view-login');
+            const vMain = document.getElementById('view-main');
+
+            if (token) {
+                currentUserId = token;
+                currentUserEmail = localStorage.getItem('user_email');
+                if (!document.getElementById('user-display').innerText.includes('님')) {
+                    document.getElementById('user-display').innerText = (currentUserEmail ? currentUserEmail.split('@')[0] : '사용자') + ' 님';
+                    loadUserProfile();
+                }
+
+                vLogin.classList.add('hidden');
+                vMain.classList.remove('hidden', 'flex-col');
+                vMain.classList.add('flex', 'flex-col');
+                const activeTab = localStorage.getItem('activeTab') || 'moveout';
+                switchTab(activeTab);
+            } else {
+                vLogin.classList.remove('hidden');
+                vMain.classList.add('hidden', 'flex-col');
+                vMain.classList.remove('flex', 'flex-col');
+            }
+        }
+
+        function switchTab(tab) {
+            localStorage.setItem('activeTab', tab);
+            const mBtn = document.getElementById('tab-moveout');
+            const rBtn = document.getElementById('tab-rental');
+            const nBtn = document.getElementById('tab-notes');
+            const mContent = document.getElementById('content-moveout');
+            const rContent = document.getElementById('content-rental');
+            const nContent = document.getElementById('content-notes');
+            const moveoutBottom = document.getElementById('bottom-bar-moveout');
+
+            const activeClass = "flex-1 py-3 text-center text-sm font-bold border-b-2 text-primary border-primary transition-all flex justify-center items-center gap-2";
+            const inactiveClass = "flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2";
+
+            mBtn.className = inactiveClass;
+            rBtn.className = inactiveClass;
+            nBtn.className = inactiveClass;
+
+            mContent.classList.add('hidden');
+            rContent.classList.add('hidden');
+            nContent.classList.add('hidden');
+            if (moveoutBottom) moveoutBottom.style.display = 'none';
+            document.body.classList.remove('pb-28');
+
+            if (tab === 'moveout') {
+                mBtn.className = activeClass;
+                mContent.classList.remove('hidden');
+                document.body.classList.add('pb-28');
+                if (moveoutBottom) moveoutBottom.style.display = 'block';
+
+                if (document.getElementById('moveout-editor-view').classList.contains('hidden')) {
+                    loadMoveoutsFromCloud();
+                }
+            } else if (tab === 'rental') {
+                rBtn.className = activeClass;
+                rContent.classList.remove('hidden');
+                rContent.classList.add('flex');
+                
+                if (document.getElementById('rental-editor-view').classList.contains('hidden')) {
+                    loadRentalsFromCloud();
+                }
+                document.getElementById('sync-icon').classList.remove('hidden');
+                setTimeout(() => document.getElementById('sync-icon').classList.add('hidden'), 2000);
+            } else if (tab === 'notes') {
+                nBtn.className = activeClass;
+                nContent.classList.remove('hidden');
+                nContent.classList.add('flex');
+
+                // 에디터가 열려있지 않을 때만 목록 새로고침
+                if (document.getElementById('note-editor-view').classList.contains('hidden')) {
+                    loadNotesFromCloud();
+                }
+                document.getElementById('sync-icon-notes').classList.remove('hidden');
+                setTimeout(() => document.getElementById('sync-icon-notes').classList.add('hidden'), 2000);
+            }
+        }
+
+        // --- 1.2 퇴실확인서 (Moveout) 로직 ---
+        let moveouts = [];
+
+        async function loadMoveoutsFromCloud() {
+            document.getElementById('loadingIndicatorMoveout').classList.remove('hidden');
+            document.getElementById('moveout-list').innerHTML = '';
+            document.getElementById('moveout-empty').classList.add('hidden');
+
+            const data = await fetchWithAuth('/api/moveouts');
+            document.getElementById('loadingIndicatorMoveout').classList.add('hidden');
+
+            if (data && Array.isArray(data)) {
+                moveouts = data;
+            } else {
+                moveouts = [];
+            }
+            renderMoveouts();
+        }
+
+        function renderMoveouts() {
+            const list = document.getElementById('moveout-list');
+            const empty = document.getElementById('moveout-empty');
+            const indicator = document.getElementById('loadingIndicatorMoveout');
+
+            if (!indicator.classList.contains('hidden')) return; 
+
+            if (!moveouts || moveouts.length === 0) {
+                list.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            list.innerHTML = moveouts.map(m => {
+                const dateObj = m.created_at ? new Date(m.created_at) : new Date();
+                const dateStr = `${dateObj.getFullYear()}.${String(dateObj.getMonth() + 1).padStart(2,'0')}.${String(dateObj.getDate()).padStart(2,'0')}`;
+                const title = m.address ? `${m.address} ${m.room || ''}`.trim() : '주소 미입력 (퇴실)';
+                const tenant = m.tenant_name ? `${m.tenant_name} 세입자` : '';
+
+                return `
+                <div class="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 p-4 cursor-pointer hover:border-blue-400 transition-colors active:scale-[0.98]" onclick="openMoveoutEditor('${m.id}')">
+                    <div class="flex items-center gap-2 mb-2">
+                        <span class="text-xs font-black px-2 py-0.5 rounded bg-blue-50 text-blue-700 whitespace-nowrap border border-blue-100">${m.room_type || '원룸'}</span>
+                        <h3 class="font-black text-gray-800 text-[1.1rem] truncate">${title}</h3>
+                    </div>
+                    ${tenant ? `<p class="text-[0.9rem] font-bold text-gray-600 mb-3 truncate bg-gray-50 inline-block px-2 py-1 rounded-md">${tenant}</p>` : ''}
+                    <div class="flex justify-between items-center text-[0.7rem] text-gray-400 font-medium pt-2 border-t border-gray-50">
+                        <span>작성일: ${dateStr}</span>
+                        <button onclick="event.stopPropagation(); deleteMoveout('${m.id}')" class="text-red-400 hover:text-red-600 font-bold px-1 rounded active:scale-95 transition-all">삭제</button>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function addMoveout() {
+            const newId = 'temp_' + Date.now();
+            const newMoveout = {
+                id: newId,
+                contract_type: '만기',
+                room_type: '원룸',
+                tenant_name: '', address: '', room: '',
+                current_pwd: '', new_pwd: '',
+                empty_status: '', cleaning_status: '', damage_status: '',
+                gas_status: '', water_status: '', electric_status: '',
+                refund_bank: '', refund_account: '', refund_owner: '',
+                form_data: '{}'
+            };
+
+            moveouts.unshift(newMoveout); 
+            openMoveoutEditor(newId);
+        }
+
+        async function deleteMoveout(id) {
+            if (confirm('클라우드에서 이 퇴실확인서를 영구 삭제하시겠습니까?')) {
+                moveouts = moveouts.filter(m => m.id !== id);
+                renderMoveouts();
+
+                if (!id.startsWith('temp_')) {
+                    await fetchWithAuth(`/api/moveouts?id=${id}`, { method: 'DELETE' });
+                }
+            }
+        }
+
+        function openMoveoutEditor(id) {
+            const m = moveouts.find(item => item.id === id);
+            if (!m) return;
+
+            document.getElementById('moveout-list-view').classList.add('hidden');
+            document.getElementById('moveout-editor-view').classList.remove('hidden');
+
+            document.getElementById('moveout-id').value = m.id;
+            
+            // 기존 데이터 복원 (DOM 조작)
+            const form = document.getElementById('moveout-form');
+            form.reset(); // 폼 초기화부터
+            
+            // 라디오버튼 / 셀렉트 / 인풋 초기화 로직 구현: form_data JSON 파싱
+            if (m.form_data) {
+                try {
+                    const parsed = JSON.parse(m.form_data);
+                    
+                    // 체크박스 매핑 복원 등
+                    for (const [key, val] of Object.entries(parsed)) {
+                        const el = form.querySelector(`[name="${key}"], [id="${key}"]`);
+                        if(el && el.type === 'radio') {
+                            const rb = form.querySelector(`[name="${key}"][value="${val}"]`);
+                            if(rb) rb.checked = true;
+                            else if(key.startsWith('check-') && typeof val === 'object') {
+                                // 체크리스트 특수 처리: {status: 'issue', detail: '...'}
+                                const rbStatus = form.querySelector(`[name="${key}"][value="${val.status}"]`);
+                                if(rbStatus) rbStatus.checked = true;
+                                const index = key.split('-')[1];
+                                toggleDetail(index, val.status === 'issue');
+                                if(val.status === 'issue') {
+                                    const det = document.getElementById(`detail-${index}`);
+                                    if(det) det.querySelector('input').value = val.detail;
+                                }
+                            }
+                        } else if (el && el.type === 'checkbox') {
+                            el.checked = val;
+                        } else if (el) {
+                            el.value = val;
+                        }
+                    }
+                    
+                    // 금액 합산계산 재트리거
+                    const dp = document.getElementById('cost-deposit');
+                    if(dp) formatAndCalc(dp);
+
+                } catch (e) { console.error('form_data parse error:', e); }
+            } else {
+                // 초기값 없는 신규
+                initMoveoutChecklist(); // 리셋된 체크리스트 정상화
+            }
+        }
+
+        function closeMoveoutEditor() {
+            // 목록으로 돌아갈 때 자동저장을 한 번 시도할 수 있지만 명시적 저장이 나음.
+            document.getElementById('moveout-editor-view').classList.add('hidden');
+            document.getElementById('moveout-list-view').classList.remove('hidden');
+            renderMoveouts();
+        }
+
+        async function saveMoveoutToCloud() {
+            const id = document.getElementById('moveout-id').value;
+            const form = document.getElementById('moveout-form');
+            
+            if (!id) return;
+            let mIndex = moveouts.findIndex(item => item.id === id);
+            
+            // 현재 폼 데이터를 긁어와서 저장용 JSON 객체 생성
+            const formDataObj = {};
+            const elements = form.querySelectorAll('input, select, textarea');
+            elements.forEach(el => {
+                if (el.type === 'radio') {
+                    if (el.checked) formDataObj[el.name] = el.value;
+                } else if (el.type === 'checkbox') {
+                    formDataObj[el.id || el.name] = el.checked;
+                } else if (el.id && el.id.startsWith('detail-')) {
+                   // ignore - handled via radio
+                } else if (el.id || el.name) {
+                    formDataObj[el.id || el.name] = el.value;
+                }
+            });
+            
+            // 체크리스트 특수 긁기
+            checkItems.forEach((_, idx) => {
+                const radios = form.querySelectorAll(`[name="check-${idx}"]`);
+                let status = 'normal';
+                radios.forEach(r => { if(r.checked) status = r.value; });
+                const detailInput = document.getElementById(`detail-${idx}`)?.querySelector('input')?.value || '';
+                formDataObj[`check-${idx}`] = { status, detail: detailInput };
+            });
+
+            // 대표 필드 몇 개 뽑기 (address, room, room_type 등)
+            // 여기서는 HTML 구조상 select 등 위치에 id나 name 파싱이 까다로우면 통짜 form_data로 사용.
+            // (강제성: 백엔드에서 필요한 필드는 form_data 내에서 쓴다고 가정)
+            
+            // 단순화를 위해 무조건 통 JSON으로 form_data에 담음.
+            const payload = {
+                id: id,
+                email: currentUserEmail,
+                form_data: JSON.stringify(formDataObj)
+                // contract_type 등은 백엔드가 요구하면 파싱해서 넣어야 하나 스키마가 널널하고 form_data에 있으므로 빈 문자열 지원.
+            };
+
+            const res = await fetchWithAuth('/api/moveouts', {
+                method: 'POST',
+                body: JSON.stringify(payload)
+            });
+
+            if (res && res.success && res.id) {
+                if (id.startsWith('temp_')) {
+                    if(mIndex > -1) {
+                        moveouts[mIndex].id = res.id;
+                        document.getElementById('moveout-id').value = res.id;
+                    }
+                }
+                alert('퇴실확인서가 성공적으로 클라우드에 저장되었습니다!');
+                
+                // 데이터 최신화
+                if(mIndex > -1){
+                    moveouts[mIndex].form_data = payload.form_data;
+                    moveouts[mIndex].created_at = new Date().toISOString(); // 간단업뎃
+                }
+            } else {
+                alert('저장 중 오류가 발생했습니다.');
+            }
+        }
+
+
+        // --- 2. 클라우드 연동 임대관리 (Rental) 로직 ---
+        let rentals = [];
+        // 타이머 캐싱으로 너무 잦은 API 통신 막기
+        let syncTimeout = null;
+
+        async function fetchWithAuth(url, options = {}) {
+            const token = localStorage.getItem('auth_token');
+            if (!token) return null;
+
+            options.headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+
+            try {
+                const response = await fetch(url, options);
+                if (response.status === 401) {
+                    handleLogout();
+                    return null;
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('API Error:', error);
+                return null;
+            }
+        }
+
+        // --- 1.1 유저 프로필(닉네임) 로드 및 변경 ---
+        async function loadUserProfile() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) return;
+            try {
+                const res = await fetchWithAuth('/api/profile');
+                if (res && res.id) {
+                    const displayName = res.nickname || currentUserEmail.split('@')[0];
+                    document.getElementById('user-display').innerText = displayName + ' 님';
+                }
+            } catch (e) {
+                console.error('프로필 로드 실패', e);
+            }
+        }
+
+        async function changeNickname() {
+            const currentName = document.getElementById('user-display').innerText.replace(' 님', '');
+            const newName = prompt("변경할 새로운 닉네임을 입력하세요\n(공백으로 두면 기본 구글 이메일 아이디가 사용됩니다.)", currentName);
+
+            if (newName !== null) {
+                const res = await fetchWithAuth('/api/profile', {
+                    method: 'POST',
+                    body: JSON.stringify({ nickname: newName.trim(), email: currentUserEmail })
+                });
+
+                if (res && res.success) {
+                    const displayName = res.nickname || currentUserEmail.split('@')[0];
+                    document.getElementById('user-display').innerText = displayName + ' 님';
+                    alert('닉네임이 성공적으로 변경되었습니다!');
+                } else {
+                    alert('닉네임 변경 중 오류가 발생했습니다.');
+                }
+            }
+        }
+
+        // --- 2. 임대관리 관련 로직 ---
+        async function loadRentalsFromCloud() {
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            document.getElementById('rental-list').innerHTML = '';
+            document.getElementById('rental-empty').classList.add('hidden');
+
+            const data = await fetchWithAuth('/api/rentals');
+
+            document.getElementById('loadingIndicator').classList.add('hidden');
+
+            if (data && Array.isArray(data)) {
+                rentals = data;
+            } else {
+                rentals = []; // fetch fail fallback to empty array
+            }
+            renderRentals();
+        }
+
+        async function addRental() {
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const newRental = {
+                email: currentUserEmail,
+                type: '원룸',
+                date: dateStr, movein: '', address: '', room: '',
+                deposit: '', premium: '', rent: '', yearly_rent: '', maintenance: '',
+                inc_internet: false, inc_tv: false, inc_water: false,
+                options: '', special_notes: '', phone: '', common_pwd: '', unit_pwd: '',
+                business_name: '', exclusive_area: '', supply_area: '',
+                land_area: '', total_floor_area: '', sale_price: '', current_loan: ''
+            };
+
+            // 낙관적 UI 업데이트: 먼저 화면에 표시하고 통신
+            const tempId = 'temp_' + Date.now();
+            newRental.id = tempId;
+            rentals.unshift(newRental);
+            renderRentals();
+            
+            // 새 매물 생성 시 바로 에디터 열기
+            openRentalEditor(tempId);
+
+            const result = await fetchWithAuth('/api/rentals', {
+                method: 'POST',
+                body: JSON.stringify(newRental)
+            });
+
+            // 진짜 ID로 교체
+            if (result && result.success && result.id) {
+                const index = rentals.findIndex(r => r.id === tempId);
+                if (index > -1) {
+                    rentals[index].id = result.id;
+                    renderRentals(); // ID 업데이트 반영 (카드 이벤트 리스너 리바인딩용)
+                    
+                    // 에디터가 열려있고 해당 tempId를 가리키고 있다면 DOM의 data-id도 업데이트
+                    const editorCard = document.querySelector(`#rental-editor-view [data-id="${tempId}"]`);
+                    if (editorCard) {
+                        editorCard.setAttribute('data-id', result.id);
+                    }
+                }
+            } else {
+                // 실패 시 롤백
+                rentals = rentals.filter(r => r.id !== tempId);
+                renderRentals();
+            }
+        }
+
+        async function deleteRental(id) {
+            if (confirm('클라우드 서버에서 이 매물 카드를 영구 삭제하시겠습니까?')) {
+                // 낙관적 UI 삭제
+                rentals = rentals.filter(r => r.id !== id);
+                renderRentals();
+
+                if (!id.startsWith('temp_')) {
+                    await fetchWithAuth(`/api/rentals?id=${id}`, { method: 'DELETE' });
+                }
+            }
+        }
+
+        function updateRental(id, field, value) {
+            const rental = rentals.find(r => r.id === id);
+            if (rental) {
+                rental[field] = value;
+
+                // 디바운스 처리하여 구름(Cloud) 저장
+                if (syncTimeout) clearTimeout(syncTimeout);
+                document.getElementById('sync-icon').classList.remove('hidden');
+
+                syncTimeout = setTimeout(() => {
+                    syncToCloud(rental);
+                }, 1000); // 1초간 변화 없으면 저장 (입력중 불필요한 API 호출 방지)
+            }
+        }
+
+        async function syncToCloud(rental) {
+            if (rental.id.startsWith('temp_')) return; // 아직 ID 발급 못받은건 무시
+            rental.email = currentUserEmail;
+            const res = await fetchWithAuth('/api/rentals', {
+                method: 'POST', // 우리 백엔드 POST 로직이 사실상 Upsert 기능을 하므로 재활용하거나 분리. 여기서는 단순화 위해.
+                body: JSON.stringify(rental)
+            });
+            document.getElementById('sync-icon').classList.add('hidden');
+        }
+
+        function renderRentals() {
+            const list = document.getElementById('rental-list');
+            const empty = document.getElementById('rental-empty');
+            const indicator = document.getElementById('loadingIndicator');
+
+            if (!indicator.classList.contains('hidden')) return; // 로딩중이면 무시
+
+            if (!rentals || rentals.length === 0) {
+                list.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            list.innerHTML = rentals.map(r => {
+                const dateObj = r.date ? new Date(r.date) : new Date();
+                const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`;
+                const addressPart = r.address ? `${r.address} ${r.room || ''}`.trim() : '주소 미입력';
+                const businessPart = r.business_name ? `(${r.business_name})` : '';
+                const title = `${addressPart} ${businessPart}`.trim() || '정보 미입력 매물';
+                const premiumStr = r.premium ? ` / 권 ${r.premium}` : '';
+                const rentStr = r.rent ? ` / 월 ${r.rent}` : (r.yearly_rent ? ` / 년 ${r.yearly_rent}` : '');
+                const depositStr = r.deposit ? `보 ${r.deposit}` : '보증금 미입력';
+                const summary = `${depositStr}${rentStr}${premiumStr}`;
+
+                return `
+                <div class="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 p-4 cursor-pointer hover:border-darkgreen transition-colors active:scale-[0.98]" onclick="openRentalEditor('${r.id}')">
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <span class="text-xs font-black px-2 py-0.5 rounded bg-green-50 text-darkgreen whitespace-nowrap border border-green-100">${r.type || '원룸'}</span>
+                            <h3 class="font-black text-gray-800 text-[1.1rem] truncate">${title}</h3>
+                        </div>
+                    </div>
+                    <p class="text-[0.9rem] font-bold text-gray-600 mb-3 truncate bg-gray-50 inline-block px-2 py-1 rounded-md">${summary}</p>
+                    <div class="flex justify-between items-center text-[0.7rem] text-gray-400 font-medium pt-2 border-t border-gray-50">
+                        <span>등록일: ${dateStr}</span>
+                        <span>${r.movein ? '입주: ' + r.movein : '입주일 미정'}</span>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function openRentalEditor(id) {
+            const r = rentals.find(item => item.id === id);
+            if (!r) return;
+
+            document.getElementById('rental-list-view').classList.add('hidden');
+            document.getElementById('rental-editor-view').classList.remove('hidden');
+
+            const content = document.getElementById('rental-editor-content');
+            
+            content.innerHTML = `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8" data-id="${r.id}">
+                    <div class="flex justify-between items-center bg-gray-50 border-b border-gray-100 p-3 pl-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">🏷️</span>
+                            <select class="rental-input rental-select text-[0.9rem] font-black text-darkgreen bg-transparent outline-none py-1 tracking-wide" data-field="type">
+                                <option value="원룸" ${r.type === '원룸' ? 'selected' : ''}>원룸</option>
+                                <option value="1.5룸" ${r.type === '1.5룸' ? 'selected' : ''}>1.5룸</option>
+                                <option value="투룸" ${r.type === '투룸' ? 'selected' : ''}>투룸</option>
+                                <option value="쓰리룸" ${r.type === '쓰리룸' ? 'selected' : ''}>쓰리룸</option>
+                                <option value="아파트" ${r.type === '아파트' ? 'selected' : ''}>아파트</option>
+                                <option value="빌라" ${r.type === '빌라' ? 'selected' : ''}>빌라</option>
+                                <option value="주택" ${r.type === '주택' ? 'selected' : ''}>주택</option>
+                                <option value="상가" ${r.type === '상가' ? 'selected' : ''}>상가</option>
+                                <option value="기타" ${r.type === '기타' ? 'selected' : ''}>기타</option>
+                            </select>
+                        </div>
+                        <button onclick="deleteRental('${r.id}')" class="text-red-400 hover:text-red-500 font-bold text-xs px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 shadow-sm active:scale-95 transition-all">의뢰서 삭제</button>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="col-span-2 flex gap-3">
+                                <div class="flex-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">작성일</label>
+                                    <input type="date" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-700 font-medium" data-field="date" value="${r.date || ''}">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">입주 가능일</label>
+                                    <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="즉시/협의 등" data-field="movein" value="${r.movein || ''}">
+                                </div>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">주소 및 상호명/호수</label>
+                                <div class="flex gap-2 mb-2">
+                                    <input type="text" class="rental-input flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800" placeholder="상세 주소" data-field="address" value="${r.address || ''}">
+                                </div>
+                                <div class="flex gap-2">
+                                    <input type="text" class="rental-input flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800" placeholder="상호명" data-field="business_name" value="${r.business_name || ''}">
+                                    <input type="text" class="rental-input w-24 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800 text-center" placeholder="호실" data-field="room" value="${r.room || ''}">
+                                </div>
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">전용면적</label>
+                                <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 25.4㎡ / 7.7평" data-field="exclusive_area" value="${r.exclusive_area || ''}">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">공급면적</label>
+                                <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 33.1㎡ / 10평" data-field="supply_area" value="${r.supply_area || ''}">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">대지면적</label>
+                                <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 100㎡" data-field="land_area" value="${r.land_area || ''}">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">연면적</label>
+                                <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 200㎡" data-field="total_floor_area" value="${r.total_floor_area || ''}">
+                            </div>
+                            <div class="col-span-2 grid grid-cols-2 gap-3 pt-1 border-t border-gray-100 mt-1">
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">보증금 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">보</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-black text-gray-800 pl-8 text-right" placeholder="0.0" data-field="deposit" value="${r.deposit || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">권리금 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">권</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-black text-gray-800 pl-8 text-right" placeholder="0.0" data-field="premium" value="${r.premium || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-green-700 mb-1 ml-1 tracking-tight">월세 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-green-600/50 text-xs font-black select-none pointer-events-none">월</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-green-50/50 border border-green-200 focus:border-green-600 focus:ring-1 focus:ring-green-600 rounded-lg text-[0.95rem] font-black text-green-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="rent" value="${r.rent || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-blue-700 mb-1 ml-1 tracking-tight">년세 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-blue-600/50 text-xs font-black select-none pointer-events-none">년</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-blue-50/50 border border-blue-200 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-lg text-[0.95rem] font-black text-blue-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="yearly_rent" value="${r.yearly_rent || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-red-700 mb-1 ml-1 tracking-tight">매매가 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-red-600/50 text-xs font-black select-none pointer-events-none">매</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-red-50/50 border border-red-200 focus:border-red-600 focus:ring-1 focus:ring-red-600 rounded-lg text-[0.95rem] font-black text-red-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="sale_price" value="${r.sale_price || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-orange-700 mb-1 ml-1 tracking-tight">현 융자금액 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-orange-600/50 text-xs font-black select-none pointer-events-none">융</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-orange-50/50 border border-orange-200 focus:border-orange-600 focus:ring-1 focus:ring-orange-600 rounded-lg text-[0.95rem] font-black text-orange-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="current_loan" value="${r.current_loan || ''}">
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">관리비 (만원)</label>
+                                <div class="relative flex items-center">
+                                    <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">관</span>
+                                    <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-[0.95rem] font-black text-gray-800 pl-8 text-right" placeholder="0.0" data-field="maintenance" value="${r.maintenance || ''}">
+                                </div>
+                            </div>
+                            <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-2 ml-1 tracking-tight">관리비 포함 내역 (인/유/수)</label>
+                                <div class="flex gap-2">
+                                    <label class="check-pill flex-1 cursor-pointer">
+                                        <input type="checkbox" class="rental-check hidden" data-field="inc_internet" ${r.inc_internet ? 'checked' : ''}>
+                                        <div class="text-center py-2.5 border border-gray-200 rounded-lg text-xs font-bold transition-all bg-gray-50 text-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">인터넷</div>
+                                    </label>
+                                    <label class="check-pill flex-1 cursor-pointer">
+                                        <input type="checkbox" class="rental-check hidden" data-field="inc_tv" ${r.inc_tv ? 'checked' : ''}>
+                                        <div class="text-center py-2.5 border border-gray-200 rounded-lg text-xs font-bold transition-all bg-gray-50 text-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">유선방송</div>
+                                    </label>
+                                    <label class="check-pill flex-1 cursor-pointer">
+                                        <input type="checkbox" class="rental-check hidden" data-field="inc_water" ${r.inc_water ? 'checked' : ''}>
+                                        <div class="text-center py-2.5 border border-gray-200 rounded-lg text-xs font-bold transition-all bg-gray-50 text-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">수도</div>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">옵션</label>
+                                <input type="text" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium" placeholder="에어컨, 세탁기 등" data-field="options" value="${r.options || ''}">
+                            </div>
+                            <div class="col-span-1 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.7rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">1층 공동현관 비번</label>
+                                <input type="text" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium" placeholder="예: *1234#" data-field="common_pwd" value="${r.common_pwd || ''}">
+                            </div>
+                            <div class="col-span-1 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.7rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">세대 비밀번호</label>
+                                <input type="text" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium" placeholder="예: 4321*" data-field="unit_pwd" value="${r.unit_pwd || ''}">
+                            </div>
+                            <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">특이사항</label>
+                                <textarea rows="2" class="rental-input w-full p-3 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium resize-none" placeholder="기타 특이사항 입력" data-field="special_notes">${r.special_notes || ''}</textarea>
+                            </div>
+                            <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">전화번호</label>
+                                <input type="tel" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-primary tracking-widest leading-none h-[44px]" placeholder="010-0000-0000" data-field="phone" value="${r.phone || ''}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 이벤트 바인딩 (현재 열린 에디터 내부의 요소만 대상)
+            const editorEl = document.getElementById('rental-editor-view');
+            editorEl.querySelectorAll('.rental-input, textarea.rental-input').forEach(el => {
+                el.addEventListener('input', (e) => {
+                    const card = e.target.closest('[data-id]');
+                    if(!card) return;
+                    const id = card.getAttribute('data-id');
+                    const field = e.target.getAttribute('data-field');
+                    let value = e.target.value;
+
+                    if (e.target.classList.contains('money-input')) {
+                        // Check if the input is during Korean IME composition to prevent clearing the entire field
+                        if (e.isComposing) return;
+                        
+                        let num = value.replace(/[^0-9.]/g, '');
+                        if (num === '') {
+                            e.target.value = '';
+                            updateRental(id, field, '');
+                            return;
+                        }
+
+                        const parts = num.split('.');
+                        if (parts.length > 2) {
+                            num = parts[0] + '.' + parts.slice(1).join('');
+                        }
+
+                        let [integerPart, decimalPart] = num.split('.');
+                        if (integerPart) {
+                            integerPart = Number(integerPart.replace(/,/g, '')).toLocaleString();
+                        }
+                        
+                        const formattedValue = decimalPart !== undefined ? `${integerPart}.${decimalPart}` : integerPart;
+                        // Only update the input value if it has actually changed to avoid messing up caret position constantly
+                        if (e.target.value !== formattedValue) {
+                            e.target.value = formattedValue;
+                        }
+                        value = formattedValue;
+                    }
+                    updateRental(id, field, value);
+                });
+            });
+
+            editorEl.querySelectorAll('.rental-check').forEach(el => {
+                el.addEventListener('change', (e) => {
+                    const card = e.target.closest('[data-id]');
+                    if(!card) return;
+                    const id = card.getAttribute('data-id');
+                    const field = e.target.getAttribute('data-field');
+                    updateRental(id, field, e.target.checked);
+                });
+            });
+        }
+
+        async function handleRentalSaveClick() {
+            if (syncTimeout) clearTimeout(syncTimeout);
+            
+            const editorCard = document.querySelector('#rental-editor-view [data-id]');
+            if (editorCard) {
+                const id = editorCard.getAttribute('data-id');
+                const rental = rentals.find(r => r.id === id);
+                if (rental && !rental.id.startsWith('temp_')) {
+                    document.getElementById('sync-icon').classList.remove('hidden');
+                    await syncToCloud(rental);
+                } else if (rental && rental.id.startsWith('temp_')) {
+                    // Try to wait a bit if it is still tempid (creation in progress)
+                    await new Promise(r => setTimeout(r, 1000));
+                    const updatedRental = rentals.find(r => r.id === id) || rentals.find(r => r === rental); // find ref
+                    if(updatedRental && !updatedRental.id.startsWith('temp_')) {
+                        await syncToCloud(updatedRental);
+                    }
+                }
+            }
+            closeRentalEditor();
+        }
+
+        function closeRentalEditor() {
+            document.getElementById('rental-editor-view').classList.add('hidden');
+            document.getElementById('rental-list-view').classList.remove('hidden');
+            // 에디터 닫을 때 목록에 변경사항 즉시 반영
+            renderRentals();
+        }
+
+        // --- 2.5 자유노트 (Notes) 로직 ---
+        async function loadNotesFromCloud() {
+            document.getElementById('loadingIndicatorNotes').classList.remove('hidden');
+            document.getElementById('notes-list').innerHTML = '';
+            document.getElementById('notes-empty').classList.add('hidden');
+
+            const data = await fetchWithAuth('/api/notes');
+            document.getElementById('loadingIndicatorNotes').classList.add('hidden');
+
+            if (data && Array.isArray(data)) {
+                notes = data;
+            } else {
+                notes = [];
+            }
+            renderNotesList();
+        }
+
+        function renderNotesList() {
+            const list = document.getElementById('notes-list');
+            const empty = document.getElementById('notes-empty');
+
+            if (!notes || notes.length === 0) {
+                list.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            list.innerHTML = notes.map(n => {
+                const dateObj = new Date(n.updated_at || n.created_at || Date.now());
+                const dateStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()} ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+                const preview = n.content ? n.content.substring(0, 40) + (n.content.length > 40 ? '...' : '') : '내용 없음';
+
+                return `
+                <div class="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 p-4 cursor-pointer hover:border-blue-300 transition-colors active:scale-[0.98]" onclick="openNoteEditor('${n.id}')">
+                    <div class="flex justify-between items-start mb-1">
+                        <h3 class="font-black text-gray-800 text-[1.05rem] truncate pr-2">${n.title || '제목 없는 노트'}</h3>
+                        ${n.is_shared ? '<span class="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">공유중</span>' : ''}
+                    </div>
+                    <p class="text-sm text-gray-500 mb-3 truncate">${preview}</p>
+                    <div class="text-[0.7rem] text-gray-400 font-medium">${dateStr}</div>
+                </div>
+            `}).join('');
+        }
+
+        function createNote() {
+            const newId = 'temp_' + Date.now();
+            const newNote = {
+                id: newId,
+                title: '',
+                content: '',
+                is_shared: 0,
+                updated_at: new Date().toISOString()
+            };
+            notes.unshift(newNote);
+            openNoteEditor(newId);
+        }
+
+        function openNoteEditor(id) {
+            const note = notes.find(n => n.id === id);
+            if (!note) return;
+
+            document.getElementById('notes-list-view').classList.add('hidden');
+            document.getElementById('note-editor-view').classList.remove('hidden');
+
+            document.getElementById('editor-note-id').value = note.id;
+            document.getElementById('editor-note-title').value = note.title;
+            document.getElementById('editor-note-content').value = note.content;
+
+            const dateObj = new Date(note.updated_at || Date.now());
+            document.getElementById('editor-note-date').innerText = `${dateObj.getFullYear()}년 ${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`;
+
+            // 공유 토글 UI 업데이트
+            const toggleCb = document.getElementById('note-share-toggle');
+            const toggleBg = document.getElementById('share-toggle-bg');
+            const toggleDot = document.getElementById('share-toggle-dot');
+            const shareText = document.getElementById('share-status-text');
+            const shareLinkBtn = document.getElementById('editor-note-share-link');
+
+            toggleCb.checked = !!note.is_shared;
+            if (note.is_shared) {
+                toggleBg.classList.replace('bg-gray-300', 'bg-blue-500');
+                toggleDot.classList.add('translate-x-4');
+                shareText.innerText = '공유 켜짐';
+                shareText.classList.add('text-blue-600');
+                shareLinkBtn.classList.remove('hidden');
+            } else {
+                toggleBg.classList.replace('bg-blue-500', 'bg-gray-300');
+                toggleDot.classList.remove('translate-x-4');
+                shareText.innerText = '공유 끄기';
+                shareText.classList.remove('text-blue-600');
+                shareLinkBtn.classList.add('hidden');
+            }
+        }
+
+        function closeNoteEditor() {
+            // 즉시 저장 한 번 시도
+            saveCurrentNoteState();
+
+            document.getElementById('note-editor-view').classList.add('hidden');
+            document.getElementById('notes-list-view').classList.remove('hidden');
+            renderNotesList();
+        }
+
+        function toggleNoteShare(checkbox) {
+            const isShared = checkbox.checked;
+            const toggleBg = document.getElementById('share-toggle-bg');
+            const toggleDot = document.getElementById('share-toggle-dot');
+            const shareText = document.getElementById('share-status-text');
+            const shareLinkBtn = document.getElementById('editor-note-share-link');
+
+            if (isShared) {
+                toggleBg.classList.replace('bg-gray-300', 'bg-blue-500');
+                toggleDot.classList.add('translate-x-4');
+                shareText.innerText = '공유 켜짐';
+                shareText.classList.add('text-blue-600');
+                shareLinkBtn.classList.remove('hidden');
+            } else {
+                toggleBg.classList.replace('bg-blue-500', 'bg-gray-300');
+                toggleDot.classList.remove('translate-x-4');
+                shareText.innerText = '공유 끄기';
+                shareText.classList.remove('text-blue-600');
+                shareLinkBtn.classList.add('hidden');
+            }
+            debouncedSaveNote();
+
+            if (isShared) {
+                saveCurrentNoteState().then(() => copyShareLink());
+            }
+        }
+
+        function copyShareLink() {
+            const id = document.getElementById('editor-note-id').value;
+            // 만약 임시 ID면 경고 처리 (클라우드 저장 대기)
+            if (id.startsWith('temp_')) {
+                alert('노트가 아직 클라우드에 생성되지 않았습니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+            const link = `${window.location.origin}${window.location.pathname}?share_id=${id}`;
+            navigator.clipboard.writeText(link).then(() => {
+                alert(`공유 링크가 복사되었습니다!\n${link}`);
+            }).catch(err => {
+                prompt("아래 링크를 복사하세요:", link);
+            });
+        }
+
+        function debouncedSaveNote() {
+            if (noteSyncTimeout) clearTimeout(noteSyncTimeout);
+            document.getElementById('sync-icon-notes').classList.remove('hidden');
+            noteSyncTimeout = setTimeout(() => {
+                saveCurrentNoteState();
+            }, 1000);
+        }
+
+        async function saveCurrentNoteState() {
+            const id = document.getElementById('editor-note-id').value;
+            const title = document.getElementById('editor-note-title').value;
+            const content = document.getElementById('editor-note-content').value;
+            const is_shared = document.getElementById('note-share-toggle').checked ? 1 : 0;
+
+            const noteIndex = notes.findIndex(n => n.id === id);
+            if (noteIndex === -1) return;
+
+            notes[noteIndex].title = title;
+            notes[noteIndex].content = content;
+            notes[noteIndex].is_shared = is_shared;
+            notes[noteIndex].updated_at = new Date().toISOString();
+
+            const notePayload = { ...notes[noteIndex] };
+
+            const res = await fetchWithAuth('/api/notes', {
+                method: 'POST',
+                body: JSON.stringify(notePayload)
+            });
+
+            if (res && res.success && res.id) {
+                if (id.startsWith('temp_')) {
+                    notes[noteIndex].id = res.id;
+                    document.getElementById('editor-note-id').value = res.id;
+                }
+            }
+            document.getElementById('sync-icon-notes').classList.add('hidden');
+        }
+
+        async function deleteCurrentNote() {
+            if (confirm('이 노트를 영구 삭제하시겠습니까?')) {
+                const id = document.getElementById('editor-note-id').value;
+                notes = notes.filter(n => n.id !== id);
+                closeNoteEditor(); // UI부터 닫기
+
+                if (!id.startsWith('temp_')) {
+                    await fetchWithAuth(`/api/notes?id=${id}`, { method: 'DELETE' });
+                }
+            }
+        }
+
+        // --- 2.8 외부 공유 뷰 렌더러 ---
+        async function renderSharedView(shareId) {
+            // 메인 요소 숨김 & 공유뷰 노출
+            document.getElementById('view-login').style.display = 'none';
+            document.getElementById('view-main').style.display = 'none';
+            const vShared = document.getElementById('view-shared');
+            vShared.classList.remove('hidden');
+            vShared.classList.add('flex');
+
+            try {
+                const response = await fetch(`/api/shared?id=${shareId}`);
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.error);
+
+                document.getElementById('shared-note-title').innerText = data.title || '제목 없는 노트';
+                document.getElementById('shared-note-content').innerText = data.content || '';
+
+                const authorName = data.nickname || (data.email ? data.email.split('@')[0] : '작성자');
+                document.getElementById('shared-note-author').innerText = authorName;
+
+                const dateObj = new Date(data.updated_at);
+                document.getElementById('shared-note-date').innerText = `${dateObj.getFullYear()}.${dateObj.getMonth() + 1}.${dateObj.getDate()}`;
+
+            } catch (err) {
+                document.getElementById('shared-note-title').innerText = '접근할 수 없는 노트입니다.';
+                document.getElementById('shared-note-content').innerHTML = `
+                    <div class="text-red-500 font-bold mb-2">오류: ${err.message}</div>
+                    <p class="text-sm">작성자가 공유를 해제했거나 삭제된 노트일 수 있습니다.</p>
+                `;
+            }
+        }
+        const checkItems = ['KEY', '에어컨', '에어컨 리모컨', 'TV', 'TV 리모컨', '셋탑박스', '냉장고', '세탁기', '가스렌지/인덕션', '후드', '화장대', '신발장', '붙박이장', '환풍기', '침대', '전등갓', '장롱'];
+
+        function initMoveoutChecklist() {
+            const container = document.getElementById('checklist-container');
+            if (container) {
+                checkItems.forEach((item, index) => {
+                    const html = `
+                        <div class="p-2.5 bg-white rounded-lg border border-gray-200 shadow-sm transition-all duration-200 flex flex-col justify-between">
+                            <span class="font-medium text-gray-700 text-[13px] mb-2.5 flex items-center gap-1.5"><span class="w-1.5 h-1.5 rounded-full bg-blue-300"></span>${item}</span>
+                            <div class="flex gap-1 w-full mt-auto">
+                                <input type="radio" id="check-${index}-normal" name="check-${index}" value="normal" class="hidden" checked onchange="toggleDetail(${index}, false)">
+                                <label for="check-${index}-normal" class="flex-1 text-center py-1.5 border border-gray-300 bg-gray-50 rounded-md text-xs font-bold cursor-pointer transition-colors shadow-sm">정상</label>
+                                <input type="radio" id="check-${index}-issue" name="check-${index}" value="issue" class="hidden" onchange="toggleDetail(${index}, true)">
+                                <label for="check-${index}-issue" class="flex-1 text-center py-1.5 border border-red-200 bg-red-50 text-red-600 rounded-md text-xs font-bold cursor-pointer transition-colors shadow-sm">이상</label>
+                            </div>
+                            <div id="detail-${index}" class="hidden mt-2 animate-fade-in-down w-full">
+                                <input type="text" class="w-full text-xs p-2 bg-red-50/50 border border-red-200 rounded-md focus:ring-2 focus:ring-red-400 focus:outline-none" placeholder="상세 내용">
+                            </div>
+                        </div>
+                    `;
+                    container.insertAdjacentHTML('beforeend', html);
+                });
+            }
+
+            const contractUpload = document.getElementById('contract-image-upload');
+            const contractPreview = document.getElementById('contract-image-preview');
+            if (contractUpload && contractPreview) {
+                contractUpload.addEventListener('change', function (e) {
+                    contractPreview.innerHTML = '';
+                    const file = e.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function (event) {
+                            const img = document.createElement('img');
+                            img.setAttribute('src', event.target.result);
+                            img.className = 'w-full rounded-lg shadow-sm border border-gray-200 mt-2';
+                            img.style.objectFit = 'contain';
+                            img.style.maxHeight = '1200px';
+                            contractPreview.appendChild(img);
+                            contractPreview.classList.remove('hidden');
+                        };
+                        reader.readAsDataURL(file);
+                    } else {
+                        contractPreview.classList.add('hidden');
+                    }
+                });
+            }
+        }
+
+        function toggleDetail(index, show) {
+            const detailElement = document.getElementById(`detail-${index}`);
+            if (show) {
+                detailElement.classList.remove('hidden');
+                setTimeout(() => detailElement.querySelector('input').focus(), 50);
+            } else {
+                detailElement.classList.add('hidden');
+            }
+        }
+
+        function formatNumberField(input) {
+            let value = input.value.replace(/[^0-9]/g, '');
+            input.value = value ? Number(value).toLocaleString() : '';
+        }
+
+        function formatAndCalc(input) {
+            formatNumberField(input);
+            const getValue = (id) => {
+                const el = document.getElementById(id);
+                if (!el) return 0;
+                const val = el.value.replace(/,/g, '');
+                return val ? parseInt(val, 10) : 0;
+            };
+            const deposit = getValue('cost-deposit');
+            const total = deposit - (getValue('cost-facility') + getValue('cost-wallpaper') + getValue('cost-cleaning'));
+            const finalEl = document.getElementById('final-amount');
+            finalEl.textContent = total.toLocaleString() + ' 원';
+            if (total < 0) {
+                finalEl.classList.remove('text-blue-700'); finalEl.classList.add('text-red-600');
+            } else {
+                finalEl.classList.remove('text-red-600'); finalEl.classList.add('text-blue-700');
+            }
+        }
+
+        function saveAsJpeg() {
+            const bottomBar = document.getElementById('bottom-bar-moveout');
+            bottomBar.style.display = 'none';
+
+            const targetElement = document.getElementById('capture-area');
+            let htmlContent = targetElement.outerHTML;
+
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = htmlContent;
+            const originalInputs = targetElement.querySelectorAll('input, select, textarea');
+            const tempInputs = tempDiv.querySelectorAll('input, select, textarea');
+
+            originalInputs.forEach((input, index) => {
+                const tempInput = tempInputs[index];
+                if (input.type === 'radio' || input.type === 'checkbox') {
+                    if (input.checked) tempInput.setAttribute('checked', 'checked');
+                    else tempInput.removeAttribute('checked');
+                } else if (input.tagName === 'TEXTAREA') {
+                    const div = document.createElement('div');
+                    div.className = tempInput.className;
+                    div.innerHTML = input.value.replace(/\n/g, '<br>') || (input.placeholder ? `<span style="color:#9ca3af">${input.placeholder}</span>` : '');
+                    tempInput.parentNode.replaceChild(div, tempInput);
+                } else if (input.tagName === 'SELECT') {
+                    const div = document.createElement('div');
+                    div.className = tempInput.className;
+                    div.style.display = 'flex'; div.style.alignItems = 'center';
+                    div.innerHTML = input.options[input.selectedIndex]?.text || '';
+                    tempInput.parentNode.replaceChild(div, tempInput);
+                } else if (input.type === 'file') {
+                    // ignore
+                } else {
+                    const div = document.createElement('div');
+                    div.className = tempInput.className;
+                    div.style.display = 'flex'; div.style.alignItems = 'center';
+                    if (tempInput.classList.contains('text-right')) div.style.justifyContent = 'flex-end';
+                    div.innerHTML = input.value || (input.placeholder ? `<span style="color:#9ca3af">${input.placeholder}</span>` : '');
+                    tempInput.parentNode.replaceChild(div, tempInput);
+                }
+            });
+
+            const iframe = document.createElement('iframe');
+            iframe.style.position = 'fixed'; iframe.style.top = '-9999px'; iframe.style.left = '-9999px';
+            iframe.style.width = targetElement.scrollWidth + 'px';
+            iframe.style.height = targetElement.scrollHeight + 100 + 'px';
+            iframe.style.border = 'none';
+            document.body.appendChild(iframe);
+
+            const iframeDoc = iframe.contentWindow.document;
+            iframeDoc.open();
+            iframeDoc.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <meta charset="UTF-8">
+                    <script src="https://cdn.tailwindcss.com"><\/script>
+                    <style>
+                        ${document.querySelector('style').innerHTML}
+                        body { background-color: #ffffff; margin: 0; padding: 20px; overflow: visible !important; }
+                        #capture-area { max-width: none !important; width: 100% !important; margin: 0 !important; box-shadow: none !important; border: 0 !important; }
+                        .no-print { display: none !important; }
+                    </style>
+                </head>
+                <body>
+                    ${tempDiv.innerHTML}
+                </body>
+                </html>
+            `);
+            iframeDoc.close();
+
+            setTimeout(() => {
+                html2canvas(iframeDoc.body, {
+                    scale: 2, useCORS: true, backgroundColor: "#ffffff",
+                    logging: false, windowWidth: iframe.offsetWidth, windowHeight: iframe.offsetHeight
+                }).then(canvas => {
+                    document.body.removeChild(iframe);
+                    bottomBar.style.display = 'grid'; // Grid복원
+                    const link = document.createElement('a');
+                    const now = new Date();
+                    const dateStr = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}`;
+                    link.download = `퇴실확인서_${dateStr}.jpeg`;
+                    link.href = canvas.toDataURL("image/jpeg", 0.9);
+                    link.click();
+                }).catch(err => {
+                    console.error("캡처 오류:", err);
+                    document.body.removeChild(iframe);
+                    bottomBar.style.display = 'grid';
+                    alert("이미지 저장 중 오류가 발생했습니다.");
+                });
+            }, 1000);
+        }
+    </script>
+</body>
+
+</html>
