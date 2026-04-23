@@ -1229,6 +1229,9 @@
                 const status = r.status || '진행중';
                 const statusColor = status === '계약완료' ? 'bg-gray-400' : (status === '보류' ? 'bg-orange-400' : 'bg-darkgreen');
 
+                const dateObj = r.date ? new Date(r.date) : (r.created_at ? new Date(r.created_at) : new Date());
+                const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`;
+
                 const addressPart = r.address ? `${r.address} ${r.room || ''}`.trim() : '주소 미입력';
                 const businessPart = r.business_name ? `(${r.business_name})` : '';
                 const title = `${addressPart} ${businessPart}`.trim() || '정보 미입력 매물';
