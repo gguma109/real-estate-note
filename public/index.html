@@ -1128,7 +1128,7 @@
                 date: dateStr, movein: '', address: '', room: '',
                 deposit: '', premium: '', rent: '', yearly_rent: '', maintenance: '',
                 inc_internet: false, inc_tv: false, inc_water: false,
-                options: '', special_notes: '', phone: '', common_pwd: '', unit_pwd: '',
+                structure: '', options: '', special_notes: '', phone: '', common_pwd: '', unit_pwd: '',
                 business_name: '', exclusive_area: '', supply_area: '',
                 land_area: '', total_floor_area: '', sale_price: '', current_loan: '',
                 completion_date: '', building_config: '', total_deposit: '', total_monthly_income: '', loan_interest_rate: '',
@@ -1465,6 +1465,10 @@
                                 </div>
                             </div>
                             <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">구조</label>
+                                <input type="text" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium" placeholder="오픈형, 분리형, 복층 등" data-field="structure" value="${r.structure || ''}">
+                            </div>
+                            <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
                                 <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">옵션</label>
                                 <input type="text" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium" placeholder="에어컨, 세탁기 등" data-field="options" value="${r.options || ''}">
                             </div>
@@ -1646,6 +1650,7 @@
             const maintenanceStr = r.maintenance ? `\n- 관리비: ${r.maintenance}만원` : '';
             const addressStr = r.address ? `\n- 위치: ${r.address} ${r.room || ''}` : '';
             const areaStr = r.exclusive_area ? `\n- 면적: ${r.exclusive_area}` : '';
+            const structureStr = r.structure ? `\n- 구조: ${r.structure}` : '';
             const optionsStr = r.options ? `\n- 옵션: ${r.options}` : '';
             const noteStr = r.special_notes ? `\n- 특이사항: ${r.special_notes}` : '';
 
@@ -1658,7 +1663,7 @@
                 buildingStr = `\n\n[📊 수익률 분석]\n- 준공일: ${r.completion_date || '-'}\n- 세대구성: ${r.building_config || '-'}\n- 총보증금: ${r.total_deposit || 0}만원\n- 실투자금: ${actualInv}만원\n- 총월수입: ${r.total_monthly_income || 0}만원\n- 수익률(예상): 현장 문의`;
             }
 
-            const text = `[${r.type} 매물정보]\n- 상태: ${r.status || '진행중'}\n- 가격: 보증금 ${r.deposit || 0}만원${rentStr}${premiumStr}${maintenanceStr}${addressStr}${areaStr}${optionsStr}${noteStr}${buildingStr}\n\n문의 부탁드립니다. 😊`;
+            const text = `[${r.type} 매물정보]\n- 상태: ${r.status || '진행중'}\n- 가격: 보증금 ${r.deposit || 0}만원${rentStr}${premiumStr}${maintenanceStr}${addressStr}${areaStr}${structureStr}${optionsStr}${noteStr}${buildingStr}\n\n문의 부탁드립니다. 😊`;
 
             try {
                 await navigator.clipboard.writeText(text);

@@ -21,6 +21,7 @@ CREATE TABLE IF NOT EXISTS rentals (
     inc_internet BOOLEAN DEFAULT 0,
     inc_tv BOOLEAN DEFAULT 0,
     inc_water BOOLEAN DEFAULT 0,
+    structure TEXT,
     options TEXT,
     special_notes TEXT,
     phone TEXT,
