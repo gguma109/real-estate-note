@@ -1486,7 +1486,14 @@
                             </div>
                             <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
                                 <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">전화번호</label>
-                                <input type="tel" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-primary tracking-widest leading-none h-[44px]" placeholder="010-0000-0000" data-field="phone" value="${r.phone || ''}">
+                                <div class="flex items-center gap-2">
+                                    <input type="tel" class="rental-input flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-primary tracking-widest leading-none h-[44px]" placeholder="010-0000-0000" data-field="phone" value="${r.phone || ''}">
+                                    <a href="tel:${r.phone || ''}" id="phone-call-btn" class="flex items-center justify-center w-[44px] h-[44px] bg-darkgreen text-white rounded-lg border border-darkgreen hover:bg-green-700 transition-colors shadow-sm ${!r.phone ? 'opacity-50 pointer-events-none' : ''}" onclick="if(!this.getAttribute('href').replace('tel:', '')) return false;" title="전화걸기">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                                        </svg>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -1502,6 +1509,18 @@
                     const id = card.getAttribute('data-id');
                     const field = e.target.getAttribute('data-field');
                     let value = e.target.value;
+
+                    if (field === 'phone') {
+                        const callBtn = editorEl.querySelector('#phone-call-btn');
+                        if (callBtn) {
+                            callBtn.href = `tel:${value}`;
+                            if (value.trim() === '') {
+                                callBtn.classList.add('opacity-50', 'pointer-events-none');
+                            } else {
+                                callBtn.classList.remove('opacity-50', 'pointer-events-none');
+                            }
+                        }
+                    }
 
                     // '건물', '주택', '상가'일 때만 대지/연면적 노출
                     if (field === 'type') {
