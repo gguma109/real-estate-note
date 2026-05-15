@@ -214,6 +214,8 @@
                     <button onclick="switchTab('notes')" id="tab-notes"
                         class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2">메모장
                         <span id="sync-icon-notes" class="hidden w-2 h-2 rounded-full bg-green-500"></span></button>
+                    <button onclick="switchTab('gas')" id="tab-gas"
+                        class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2">가스검침표</button>
                 </div>
             </div>
 
@@ -624,6 +626,39 @@
                 </div>
             </div>
 
+            <!-- ===== TAB: 가스검침표 ===== -->
+            <div id="content-gas" class="hidden flex-1 flex flex-col bg-white p-4">
+                <div class="mb-6 space-y-3">
+                    <div>
+                        <label class="block text-xs font-bold text-gray-500 mb-2">건물 유형</label>
+                        <div class="flex gap-2">
+                            <input type="radio" id="gas-type-multi" name="gas-building-type" value="multi" class="hidden" checked onchange="initGasTab(true)">
+                            <label for="gas-type-multi" class="flex-1 text-center py-2.5 border border-gray-300 bg-white rounded-lg cursor-pointer text-xs font-bold text-gray-500 transition-all shadow-sm">다가구주택</label>
+                            
+                            <input type="radio" id="gas-type-officetel" name="gas-building-type" value="officetel" class="hidden" onchange="initGasTab(true)">
+                            <label for="gas-type-officetel" class="flex-1 text-center py-2.5 border border-gray-300 bg-white rounded-lg cursor-pointer text-xs font-bold text-gray-500 transition-all shadow-sm">오피스텔</label>
+                            
+                            <input type="radio" id="gas-type-multiunit" name="gas-building-type" value="multiunit" class="hidden" onchange="initGasTab(true)">
+                            <label for="gas-type-multiunit" class="flex-1 text-center py-2.5 border border-gray-300 bg-white rounded-lg cursor-pointer text-xs font-bold text-gray-500 transition-all shadow-sm">다세대</label>
+                        </div>
+                    </div>
+                    <div class="flex gap-2">
+                        <div class="flex-1">
+                            <label class="block text-xs font-bold text-gray-500 mb-1">건물명</label>
+                            <input type="text" id="gas-building-name" class="w-full p-2.5 border border-gray-300 rounded-lg text-sm" placeholder="건물명 입력">
+                        </div>
+                        <div class="w-32">
+                            <label class="block text-xs font-bold text-gray-500 mb-1">연/월</label>
+                            <input type="text" id="gas-date" class="w-full p-2.5 border border-gray-300 rounded-lg text-sm" placeholder="예: 24/05">
+                        </div>
+                    </div>
+                    <button onclick="copyGasData()" class="w-full bg-primary text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition-all">📋 가스검침 데이터 복사하기</button>
+                </div>
+                <div id="gas-rooms-grid" class="grid grid-cols-4 gap-2 overflow-y-auto pb-10">
+                    <!-- JS로 생성 -->
+                </div>
+            </div>
+
         </div>
     </div>
     </div>
@@ -771,9 +806,11 @@
             const mBtn = document.getElementById('tab-moveout');
             const rBtn = document.getElementById('tab-rental');
             const nBtn = document.getElementById('tab-notes');
+            const gBtn = document.getElementById('tab-gas');
             const mContent = document.getElementById('content-moveout');
             const rContent = document.getElementById('content-rental');
             const nContent = document.getElementById('content-notes');
+            const gContent = document.getElementById('content-gas');
             const moveoutBottom = document.getElementById('bottom-bar-moveout');
 
             const activeClass = "flex-1 py-3 text-center text-sm font-bold border-b-2 text-primary border-primary transition-all flex justify-center items-center gap-2";
@@ -782,10 +819,12 @@
             mBtn.className = inactiveClass;
             rBtn.className = inactiveClass;
             nBtn.className = inactiveClass;
+            if (gBtn) gBtn.className = inactiveClass;
 
             mContent.classList.add('hidden');
             rContent.classList.add('hidden');
             nContent.classList.add('hidden');
+            if (gContent) gContent.classList.add('hidden');
             if (moveoutBottom) moveoutBottom.style.display = 'none';
             document.body.classList.remove('pb-28');
 
@@ -819,6 +858,13 @@
                 }
                 document.getElementById('sync-icon-notes').classList.remove('hidden');
                 setTimeout(() => document.getElementById('sync-icon-notes').classList.add('hidden'), 2000);
+            } else if (tab === 'gas') {
+                if (gBtn) gBtn.className = activeClass;
+                if (gContent) {
+                    gContent.classList.remove('hidden');
+                    gContent.classList.add('flex');
+                }
+                initGasTab();
             }
         }
 
@@ -2092,6 +2138,79 @@
                     alert("이미지 저장 중 오류가 발생했습니다.");
                 });
             }, 1000);
+        }
+
+        // --- 2.9 가스검침표 (Gas) 로직 ---
+        function initGasTab(forceReset = false) {
+            const grid = document.getElementById('gas-rooms-grid');
+            if (!forceReset && grid.children.length > 0) return;
+
+            grid.innerHTML = ''; // Clear grid
+
+            const typeEl = document.querySelector('input[name="gas-building-type"]:checked');
+            const buildingType = typeEl ? typeEl.value : 'multi';
+            
+            let maxFloor = 8;
+            let maxRoom = 8;
+
+            if (buildingType === 'multi') {
+                maxFloor = 5;
+                maxRoom = 7;
+            }
+
+            for (let floor = 1; floor <= maxFloor; floor++) {
+                for (let room = 1; room <= maxRoom; room++) {
+                    const roomNum = floor * 100 + room;
+                    const html = `
+                        <div class="flex flex-col gap-1">
+                            <span class="text-[10px] font-bold text-gray-400 ml-1">${roomNum}호</span>
+                            <input type="text" data-room="${roomNum}" class="gas-input w-full p-2 border border-gray-200 rounded-md text-sm text-center focus:border-primary outline-none" placeholder="0">
+                        </div>
+                    `;
+                    grid.insertAdjacentHTML('beforeend', html);
+                }
+            }
+        }
+
+        async function copyGasData() {
+            const bName = document.getElementById('gas-building-name').value || '건물명미상';
+            const date = document.getElementById('gas-date').value || '날짜미상';
+            const typeEl = document.querySelector('input[name="gas-building-type"]:checked + label');
+            const bTypeLabel = typeEl ? typeEl.textContent : '';
+            const inputs = document.querySelectorAll('.gas-input');
+            
+            let resultText = `[${bName} ${date} / ${bTypeLabel}] 가스검침\n`;
+            let hasData = false;
+
+            inputs.forEach(input => {
+                const val = input.value.trim();
+                if (val !== '' && val !== '0') {
+                    resultText += `${input.getAttribute('data-room')}호: ${val}\n`;
+                    hasData = true;
+                }
+            });
+
+            if (!hasData) {
+                alert('입력된 검침 데이터가 없습니다.');
+                return;
+            }
+
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(resultText.trim());
+                    alert('가스검침 데이터가 클립보드에 복사되었습니다!');
+                } else {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = resultText.trim();
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    alert('가스검침 데이터가 클립보드에 복사되었습니다! (fallback)');
+                }
+            } catch (err) {
+                alert('복사 실패: ' + err);
+            }
         }
     </script>
 </body>
