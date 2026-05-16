@@ -2374,7 +2374,7 @@
                 maxRoom = 7;
             }
 
-            for (let floor = maxFloor; floor >= 1; floor--) {
+            for (let floor = 1; floor <= maxFloor; floor++) {
                 const rowHtml = document.createElement('div');
                 rowHtml.className = 'flex flex-row items-center gap-3 border border-gray-200 rounded-lg p-3 bg-gray-50 overflow-x-auto shadow-sm';
                 
@@ -2403,7 +2403,15 @@
 
         async function copyGasData() {
             const bName = document.getElementById('gas-building-name').value || '건물명미상';
-            const date = document.getElementById('gas-date').value || '날짜미상';
+            let date = document.getElementById('gas-date').value || '날짜미상';
+            
+            if (date.includes('/')) {
+                const parts = date.split('/');
+                if (parts.length === 2) {
+                    date = `${parts[0]}년${parts[1]}월`;
+                }
+            }
+
             const typeEl = document.querySelector('input[name="gas-building-type"]:checked + label');
             const bTypeLabel = typeEl ? typeEl.textContent : '';
             const inputs = document.querySelectorAll('.gas-input');
