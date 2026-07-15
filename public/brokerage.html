@@ -663,15 +663,15 @@
             }
         }
 
-        function switchTab(tab) {
+                function switchTab(tab) {
             localStorage.setItem('activeTab', tab);
             const rBtn = document.getElementById('tab-rental');
             const nBtn = document.getElementById('tab-notes');
             const aBtn = document.getElementById('tab-ads');
+            const tBtn = document.getElementById('tab-trash');
             const rContent = document.getElementById('content-rental');
             const nContent = document.getElementById('content-notes');
             const aContent = document.getElementById('content-ads');
-            const tBtn = document.getElementById('tab-trash');
             const tContent = document.getElementById('content-trash');
 
             const activeClass = "flex-1 py-3 text-center text-sm font-bold border-b-2 text-primary border-primary transition-all flex justify-center items-center gap-2";
@@ -691,10 +691,9 @@
             if (tab === 'rental') {
                 if(rBtn) rBtn.className = activeClass;
                 if(rContent) {
-                    if(rContent) rContent.classList.remove('hidden');
-                    if(rContent) rContent.classList.add('flex');
+                    rContent.classList.remove('hidden');
+                    rContent.classList.add('flex');
                 }
-                
                 if (document.getElementById('rental-editor-view') && document.getElementById('rental-editor-view').classList.contains('hidden')) {
                     loadRentalsFromCloud();
                 }
@@ -703,36 +702,41 @@
                     setTimeout(() => document.getElementById('sync-icon').classList.add('hidden'), 2000);
                 }
             } else if (tab === 'notes') {
-                if(nContent) nContent.classList.add('flex');
-
-                // 에디터가 열려있지 않을 때만 목록 새로고침
-                if (document.getElementById('note-editor-view').classList.contains('hidden')) {
-                    loadNotesFromCloud();
+                if(nBtn) nBtn.className = activeClass;
+                if(nContent) {
+                    nContent.classList.remove('hidden');
+                    nContent.classList.add('flex');
                 }
-                document.getElementById('sync-icon-notes').classList.remove('hidden');
-                setTimeout(() => document.getElementById('sync-icon-notes').classList.add('hidden'), 2000);
+                if (document.getElementById('note-editor-view') && document.getElementById('note-editor-view').classList.contains('hidden')) {
+                    if (typeof loadNotesFromCloud === 'function') loadNotesFromCloud();
+                }
+                if (document.getElementById('sync-icon-notes')) {
+                    document.getElementById('sync-icon-notes').classList.remove('hidden');
+                    setTimeout(() => document.getElementById('sync-icon-notes').classList.add('hidden'), 2000);
+                }
             } else if (tab === 'ads') {
                 if(aBtn) aBtn.className = activeClass;
-                if(aContent) aContent.classList.remove('hidden');
-                if(aContent) aContent.classList.add('flex');
-
-                if (document.getElementById('ads-editor-view').classList.contains('hidden')) {
+                if(aContent) {
+                    aContent.classList.remove('hidden');
+                    aContent.classList.add('flex');
+                }
+                document.body.classList.add('pb-28');
+                if (document.getElementById('ad-editor-view') && document.getElementById('ad-editor-view').classList.contains('hidden')) {
                     loadAdsFromCloud();
                 }
+                if (document.getElementById('sync-icon-ads')) {
+                    document.getElementById('sync-icon-ads').classList.remove('hidden');
+                    setTimeout(() => document.getElementById('sync-icon-ads').classList.add('hidden'), 2000);
+                }
             } else if (tab === 'trash') {
-                if (tBtn) if(tBtn) tBtn.className = activeClass;
-                if (tContent) {
-                    if(tContent) tContent.classList.remove('hidden');
-                    if(tContent) tContent.classList.add('flex');
+                if(tBtn) tBtn.className = activeClass;
+                if(tContent) {
+                    tContent.classList.remove('hidden');
+                    tContent.classList.add('flex');
                 }
                 loadTrashFromCloud();
             }
         }
-
-        // --- 2. 클라우드 연동 임대관리 (Rental) 로직 ---
-        let rentals = [];
-        // 타이머 캐싱으로 너무 잦은 API 통신 막기
-        let syncTimeout = null;
 
         async function fetchWithAuth(url, options = {}) {
             const token = localStorage.getItem('auth_token');
