@@ -1,11 +1,11 @@
-name = "real-estate-note"
+name = "move-out-confirmation"
 pages_build_output_dir = "./public"
 compatibility_date = "2024-02-26"
 
 [[d1_databases]]
 binding = "DB"
-database_name = "real-estate-db"
-database_id = "41599b93-23a2-4cc9-ad90-886be537058c"
+database_name = "rental-db"
+database_id = "2c5364c5-2eb0-4661-b9ed-3c6863e3623e"
 
 [[d1_databases]]
 binding = "JEJU_DB"
