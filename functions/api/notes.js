@@ -7,6 +7,11 @@ export async function onRequestGet(context) {
     }
 
     try {
+        
+        try {
+            await env.DB.prepare("ALTER TABLE notes ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
+            await env.DB.prepare("ALTER TABLE notes ADD COLUMN deleted_at DATETIME").run();
+        } catch (err) {}
         const { results } = await env.DB.prepare(
             "SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC"
         ).bind(token).all();

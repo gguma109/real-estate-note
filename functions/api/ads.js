@@ -8,6 +8,22 @@ export async function onRequestGet(context) {
     }
 
     try {
+        
+        try {
+            await env.JEJU_DB.prepare(`
+                CREATE TABLE IF NOT EXISTS ads (
+                    id TEXT PRIMARY KEY,
+                    user_id TEXT NOT NULL,
+                    category TEXT,
+                    data TEXT,
+                    is_deleted BOOLEAN DEFAULT 0,
+                    deleted_at DATETIME,
+                    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+                )
+            `).run();
+            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
+            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN deleted_at DATETIME").run();
+        } catch (err) {}
         const { results } = await env.JEJU_DB.prepare(
             "SELECT * FROM ads WHERE user_id = ? AND IFNULL(is_deleted, 0) = 0 ORDER BY updated_at DESC"
         ).bind(token).all();

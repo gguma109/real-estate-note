@@ -9,7 +9,7 @@ export async function onRequestGet(context) {
 
     try {
         // Fetch trashed items from both databases
-        const rentals = await env.JEJU_DB.prepare("SELECT id, 'rental' as type, type as title_hint, date as info, deleted_at FROM rentals WHERE user_id = ? AND is_deleted = 1").bind(token).all();
+        const rentals = await env.DB.prepare("SELECT id, \'rental\' as type, type as title_hint, date as info, deleted_at FROM rentals WHERE user_id = ? AND is_deleted = 1").bind(token).all();
         const ads = await env.JEJU_DB.prepare("SELECT id, 'ad' as type, category as title_hint, data as info, deleted_at FROM ads WHERE user_id = ? AND is_deleted = 1").bind(token).all();
         
         let notesResults = [];
@@ -62,7 +62,7 @@ export async function onRequestPut(context) {
         let tableName = '';
         let targetDB = null;
 
-        if (type === 'rental') { tableName = 'rentals'; targetDB = env.JEJU_DB; }
+        if (type === 'rental') { tableName = 'rentals'; targetDB = env.DB; }
         else if (type === 'ad') { tableName = 'ads'; targetDB = env.JEJU_DB; }
         else if (type === 'note') { tableName = 'notes'; targetDB = env.DB; }
         else return new Response(JSON.stringify({ error: "Invalid type" }), { status: 400 });
@@ -98,7 +98,7 @@ export async function onRequestDelete(context) {
             let tableName = '';
             let targetDB = null;
 
-            if (type === 'rental') { tableName = 'rentals'; targetDB = env.JEJU_DB; }
+            if (type === 'rental') { tableName = 'rentals'; targetDB = env.DB; }
             else if (type === 'ad') { tableName = 'ads'; targetDB = env.JEJU_DB; }
             else if (type === 'note') { tableName = 'notes'; targetDB = env.DB; }
             else return new Response(JSON.stringify({ error: "Invalid type" }), { status: 400 });
@@ -112,7 +112,7 @@ export async function onRequestDelete(context) {
             }
         } else {
             // Empty trash
-            await env.JEJU_DB.prepare("DELETE FROM rentals WHERE user_id = ? AND is_deleted = 1").bind(token).run();
+            await env.DB.prepare("DELETE FROM rentals WHERE user_id = ? AND is_deleted = 1").bind(token).run();
             await env.JEJU_DB.prepare("DELETE FROM ads WHERE user_id = ? AND is_deleted = 1").bind(token).run();
             try {
                 await env.DB.prepare("DELETE FROM notes WHERE user_id = ? AND is_deleted = 1").bind(token).run();
