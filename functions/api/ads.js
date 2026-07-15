@@ -25,7 +25,7 @@ export async function onRequestGet(context) {
             await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN deleted_at DATETIME").run();
         } catch (err) {}
         const { results } = await env.JEJU_DB.prepare(
-            "SELECT * FROM ads WHERE user_id = ? AND IFNULL(is_deleted, 0) = 0 ORDER BY updated_at DESC"
+            "SELECT * FROM ads WHERE user_id = ? ORDER BY updated_at DESC"
         ).bind(token).all();
 
         return new Response(JSON.stringify(results), {
@@ -87,7 +87,7 @@ export async function onRequestDelete(context) {
         if (!id) return new Response(JSON.stringify({ error: "Missing ID" }), { status: 400 });
 
         const result = await env.JEJU_DB.prepare(
-            "UPDATE ads SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?"
+            "DELETE FROM ads WHERE id = ? AND user_id = ?"
         ).bind(id, token).run();
 
         if (result.meta.changes === 0) {
