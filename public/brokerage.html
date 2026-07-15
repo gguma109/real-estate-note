@@ -1,0 +1,2802 @@
+<!DOCTYPE html>
+<html lang="ko">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>부동산 통합 관리 앱</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <!-- Google Identity Services (Real Login) -->
+    <script src="https://accounts.google.com/gsi/client" async defer></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#1E3A8A',
+                        secondary: '#3B82F6',
+                        accent: '#2563EB',
+                        graybg: '#F3F4F6',
+                        darkgreen: '#064E3B',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* 라디오 버튼 커스텀 */
+        input[type="radio"][value="normal"]:checked+label {
+            background-color: #2563EB;
+            color: white;
+            border-color: #2563EB;
+        }
+
+        input[type="radio"][value="issue"]:checked+label {
+            background-color: #EF4444;
+            color: white;
+            border-color: #EF4444;
+        }
+
+        input[type="radio"]:not([value="normal"]):not([value="issue"]):checked+label {
+            background-color: #2563EB;
+            color: white;
+            border-color: #2563EB;
+        }
+
+        /* 모바일용 체크박스 */
+        .check-pill input:checked+div {
+            background-color: #1E3A8A !important;
+            color: white !important;
+            border-color: #1E3A8A !important;
+            font-weight: 700 !important;
+        }
+
+        /* Select 드롭다운 */
+        select {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 1rem center;
+            background-size: 1rem 1rem;
+        }
+
+        .rental-select {
+            background-position: right 0.5rem center;
+            padding-right: 1.5rem !important;
+        }
+
+        /* 인쇄 최적화 */
+        @media print {
+            .no-print {
+                display: none !important;
+            }
+
+            body {
+                background-color: white !important;
+                padding-bottom: 0 !important;
+            }
+
+            #capture-area {
+                max-width: 100% !important;
+                box-shadow: none !important;
+            }
+
+            input,
+            textarea,
+            select {
+                border: 1px solid #e5e7eb !important;
+                background: transparent !important;
+                resize: none;
+            }
+
+            .border-b {
+                border-bottom: 1px solid #e5e7eb !important;
+            }
+
+            section,
+            .page-break-inside-avoid {
+                page-break-inside: avoid !important;
+                break-inside: avoid !important;
+            }
+        }
+
+        /* 폰트 크기/높이 강제 고정 (모바일 축소 방지) */
+        input[type="text"],
+        input[type="number"],
+        input[type="datetime-local"],
+        input[type="date"],
+        input[type="tel"],
+        select,
+        textarea {
+            font-size: 15px !important;
+            line-height: 1.5 !important;
+            padding-top: 0.65rem !important;
+            padding-bottom: 0.65rem !important;
+            min-height: 44px !important;
+            box-sizing: border-box;
+            vertical-align: middle;
+        }
+
+        #checklist-container input[type="text"] {
+            font-size: 14px !important;
+            padding-top: 0.4rem !important;
+            padding-bottom: 0.4rem !important;
+            min-height: 38px !important;
+        }
+
+        textarea {
+            min-height: 80px !important;
+            padding: 0.75rem !important;
+        }
+
+        label {
+            line-height: 1.5 !important;
+        }
+
+        /* Loading Spinner */
+        .spinner {
+            border: 3px solid rgba(0, 0, 0, 0.1);
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            border-left-color: #1E3A8A;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .category-chip {
+            padding: 0.5rem 1rem;
+            border-radius: 9999px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background-color: white;
+            border: 1px solid #e5e7eb;
+            color: #6b7280;
+            transition: all 0.2s;
+        }
+
+        .category-chip.active {
+            background-color: #f97316;
+            border-color: #f97316;
+            color: white;
+            box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.2);
+        }
+
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 text-gray-800 font-sans antialiased pb-28">
+
+    <div id="app" class="max-w-md mx-auto bg-white min-h-screen shadow-md relative">
+
+        <!-- SECTION 1: LOGIN -->
+        <div id="view-login"
+            class="flex flex-col items-center justify-center min-h-screen bg-gray-50 px-6 absolute inset-0 z-50">
+            <div class="w-full bg-white rounded-2xl shadow-xl p-8 text-center border border-gray-100 pt-12 pb-14">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-blue-50 rounded-full mb-4">
+                    <span class="text-3xl">📱</span>
+                </div>
+                <h1 class="text-2xl font-black text-primary mb-2">부동산 통합 관리 앱</h1>
+                <p class="text-sm text-gray-500 mb-8 font-medium">안전하고 빠른 관리를 위해 로그인해주세요.</p>
+
+                <!-- Google 로그인 렌더링 영역 -->
+                <div id="g_id_onload"
+                    data-client_id="555437749423-ge2amot938lnbech4141o9cdogbcrvrr.apps.googleusercontent.com"
+                    data-context="signin" data-ux_mode="popup" data-callback="handleCredentialResponse"
+                    data-auto_prompt="false">
+                </div>
+                <div class="g_id_signin" data-type="standard" data-shape="rectangular" data-theme="outline"
+                    data-text="signin_with" data-size="large" data-logo_alignment="left" data-width="280">
+                </div>
+                <!-- 사용자안내: Client ID 교체 전 표시 -->
+                <p id="auth-notice" class="text-xs text-red-500 mt-4 hidden">
+                    ※ 구글 클라이언트 ID가 "YOUR_GOOGLE_CLIENT_ID"로 설정되어 있습니다.
+                    소스로 돌아가 자신의 고유 ID로 변경해야 완벽한 로그인이 작동합니다.
+                </p>
+                <div class="mt-8 text-xs text-gray-400">
+                    <button onclick="mockDevLogin()" class="underline">[개발자 테스트용 임시 접속하기]</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- SECTION 2: MAIN VIEW -->
+        <div id="view-main" class="hidden min-h-screen flex-col bg-gray-50">
+            <!-- Header & Tabs -->
+            <div class="sticky top-0 z-40 bg-white shadow-sm no-print">
+                <header class="bg-primary text-white p-4 flex justify-between items-center relative">
+                    <button onclick="location.href='/'" class="absolute left-4 text-white hover:text-blue-200 transition-colors flex items-center gap-1 font-bold text-sm bg-blue-800/50 px-3 py-1.5 rounded-md">
+                        ◀ 포털
+                    </button>
+                    <h1 class="text-[1.1rem] font-bold tracking-wide flex items-center gap-2 mx-auto">부동산 중개 앱 <span
+                            id="user-display"
+                            class="text-[0.7rem] font-medium ml-1 opacity-80 cursor-pointer hover:underline"
+                            title="클릭하여 닉네임 변경" onclick="changeNickname()"></span></h1>
+                    <button onclick="handleLogout()"
+                        class="absolute right-4 text-xs text-blue-200 hover:text-white font-bold bg-blue-800/50 px-3 py-1.5 rounded-md transition-colors">로그아웃</button>
+                </header>
+                <div class="flex border-b border-gray-200">
+                    <button onclick="switchTab('rental')" id="tab-rental"
+                        class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-primary border-primary transition-all flex justify-center items-center gap-2">중개의뢰서
+                        <span id="sync-icon" class="hidden w-2 h-2 rounded-full bg-green-500"></span></button>
+                    <button onclick="switchTab('ads')" id="tab-ads"
+                        class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2">광고매물
+                        <span id="sync-icon-ads" class="hidden w-2 h-2 rounded-full bg-green-500"></span></button>
+                    <button onclick="switchTab('trash')" id="tab-trash"
+                        class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2">휴지통</button>
+                </div>
+            </div>
+
+            <!-- ===== TAB: 중개의뢰서 (목록/상세 분리 구조) ===== -->
+            <div id="content-rental" class="hidden flex-1 flex flex-col bg-white">
+                
+                <!-- Rental List View -->
+                <div id="rental-list-view" class="flex-1 overflow-y-auto p-4 relative bg-gray-50 pb-24">
+                    <div id="loadingIndicator" class="hidden justify-center items-center py-10 flex-col gap-3">
+                        <div class="spinner"></div>
+                        <p class="text-xs text-gray-500 font-bold">클라우드에서 데이터를 불러오는 중...</p>
+                    </div>
+
+                    <div id="rental-list" class="space-y-3"></div>
+                    
+                    <!-- Empty State -->
+                    <div id="rental-empty" class="text-center py-24 hidden">
+                        <div class="text-5xl mb-4 opacity-30">🗂️</div>
+                        <p class="text-gray-500 font-bold mb-1">등록된 중개의뢰서 내용이 없습니다.</p>
+                        <p class="text-gray-400 text-sm">하단의 + 버튼을 눌러 새 매물을 등록하세요.</p>
+                    </div>
+
+                    <!-- FAB Add Button -->
+                    <button onclick="addRental()"
+                        class="fixed bottom-6 right-6 w-14 h-14 bg-darkgreen text-white rounded-full shadow-[0_4px_14px_0_rgba(6,78,59,0.39)] flex flex-col items-center justify-center text-3xl font-light hover:bg-[#042f2e] active:scale-90 transition-all z-50">
+                        <span class="mt-[-2px]">+</span>
+                    </button>
+                </div>
+
+                <!-- Rental Editor View -->
+                <div id="rental-editor-view" class="hidden flex-1 flex flex-col bg-white animate-fade-in-down pb-20">
+                    <div class="bg-gray-50 border-b border-gray-200 p-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+                        <button onclick="closeRentalEditor()"
+                            class="text-gray-500 font-bold text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 shadow-sm active:scale-95 transition-all flex items-center gap-1">
+                            <span>◀</span> 뒤로
+                        </button>
+                        <div class="font-bold text-gray-800 text-sm">중개의뢰서 편집</div>
+                        <button onclick="handleRentalSaveClick()"
+                            class="text-darkgreen font-bold text-sm px-4 py-1.5 rounded-lg border border-green-200 bg-green-50 hover:bg-green-100 shadow-sm active:scale-95 transition-all">
+                            완료
+                        </button>
+                    </div>
+                    
+                    <div id="rental-editor-content" class="p-4 flex-1 overflow-y-auto bg-white">
+                        <!-- 에디터 폼 영역 (JS로 렌더) -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: 메모장 ===== -->
+            <div id="content-notes" class="hidden flex-1 flex flex-col bg-white">
+                <!-- Notes List View -->
+                <div id="notes-list-view" class="flex-1 overflow-y-auto p-4 relative">
+                    <div id="loadingIndicatorNotes" class="hidden justify-center items-center py-10 flex-col gap-3">
+                        <div class="spinner"></div>
+                        <p class="text-xs text-gray-500 font-bold">노트 불러오는 중...</p>
+                    </div>
+
+                    <div id="notes-list" class="space-y-3"></div>
+
+                    <div id="notes-empty" class="text-center py-24 hidden">
+                        <div class="text-5xl mb-4 opacity-30">📝</div>
+                        <p class="text-gray-500 font-bold mb-1">작성된 노트가 없습니다.</p>
+                        <p class="text-gray-400 text-sm">하단의 + 버튼을 눌러 새 노트를 작성하세요.</p>
+                    </div>
+
+                    <button onclick="createNote()"
+                        class="fixed bottom-6 right-6 w-14 h-14 bg-blue-600 text-white rounded-full shadow-[0_4px_14px_0_rgba(37,99,235,0.39)] flex flex-col items-center justify-center text-2xl hover:bg-blue-700 active:scale-90 transition-all z-50">
+                        ✍️
+                    </button>
+                </div>
+
+                <!-- Note Editor View (Evernote Style) -->
+                <div id="note-editor-view"
+                    class="hidden flex-1 flex flex-col bg-white animate-fade-in-down h-[calc(100vh-120px)]">
+                    <div
+                        class="bg-gray-50 border-b border-gray-200 p-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+                        <button onclick="closeNoteEditor()"
+                            class="text-gray-500 font-bold text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 shadow-sm active:scale-95 transition-all flex items-center gap-1">
+                            <span>◀</span> 뒤로
+                        </button>
+                        <div class="flex items-center gap-2">
+                            <label
+                                class="flex items-center gap-2 text-xs font-bold text-gray-600 bg-white px-3 py-1.5 rounded-lg border border-gray-200 shadow-sm cursor-pointer hover:bg-gray-50 transition-colors">
+                                <span id="share-status-text">공유 끄기</span>
+                                <div class="relative inline-block w-8 h-4 rounded-full bg-gray-300 transition-colors duration-200 ease-in-out"
+                                    id="share-toggle-bg">
+                                    <input type="checkbox" id="note-share-toggle" class="opacity-0 w-0 h-0"
+                                        onchange="toggleNoteShare(this)">
+                                    <span
+                                        class="absolute left-0.5 top-0.5 bg-white w-3 h-3 rounded-full transition-transform duration-200 ease-in-out"
+                                        id="share-toggle-dot"></span>
+                                </div>
+                            </label>
+                            <button onclick="saveCurrentNoteState(true)"
+                                class="text-primary font-bold text-sm px-4 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 shadow-sm active:scale-95 transition-all">저장</button>
+                        </div>
+                    </div>
+
+                    <div class="p-5 flex-1 flex flex-col overflow-y-auto">
+                        <input type="hidden" id="editor-note-id">
+                        <input type="text" id="editor-note-title"
+                            class="w-full text-2xl font-black text-gray-800 placeholder-gray-300 border-none outline-none bg-transparent mb-4 p-0"
+                            placeholder="제목 없는 노트" oninput="debouncedSaveNote()">
+                        <div
+                            class="text-xs text-gray-400 mb-6 flex justify-between items-center pb-3 border-b border-gray-100">
+                            <span id="editor-note-date"></span>
+                            <span id="editor-note-share-link" class="text-blue-500 hidden cursor-pointer"
+                                onclick="copyShareLink()">🔗 링크 복사</span>
+                        </div>
+                        <textarea id="editor-note-content"
+                            class="w-full flex-1 text-[15px] leading-relaxed text-gray-700 placeholder-gray-300 border-none outline-none bg-transparent resize-none p-0"
+                            placeholder="자유롭게 내용을 작성하세요..." oninput="debouncedSaveNote()"></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: 광고매물 ===== -->
+            <div id="content-ads" class="hidden flex-1 flex flex-col bg-white">
+                <!-- Ads List View -->
+                <div id="ads-list-view" class="flex-1 overflow-y-auto p-4 relative bg-gray-50 pb-24">
+                    
+                    <!-- Search and Filter Header -->
+                    <div class="mb-4 space-y-3">
+                        <!-- 진행중 / 계약완료 탭 -->
+                        <div class="flex bg-gray-200 p-1 rounded-xl mb-3">
+                            <button id="ad-tab-active" onclick="setAdStatusTab('active')" class="flex-1 py-1.5 text-sm font-bold bg-white rounded-lg shadow-sm text-gray-800 transition-all">진행중 매물</button>
+                            <button id="ad-tab-completed" onclick="setAdStatusTab('completed')" class="flex-1 py-1.5 text-sm font-bold text-gray-500 rounded-lg transition-all hover:bg-gray-100">계약완료 매물</button>
+                        </div>
+                        <div class="flex gap-2 mb-2">
+                            <div class="relative flex-1">
+                                <input type="text" id="ad-search-no" oninput="renderAdsList()" 
+                                    placeholder="매물번호, 주소, 상호명 검색..." 
+                                    class="w-full bg-white border border-gray-200 rounded-xl px-10 py-3 text-sm outline-none focus:border-orange-500 shadow-sm transition-all">
+                                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
+                            </div>
+                            
+                        </div>
+                        
+                        <!-- Dropdown Filters -->
+                        <div class="grid grid-cols-3 gap-2">
+                            <select id="ad-category-filter" onchange="setAdCategoryFilter(this.value)" class="w-full bg-white border border-gray-200 rounded-xl px-1 py-2 text-[11px] font-bold outline-none text-gray-600 focus:border-orange-500 shadow-sm text-center">
+                                <option value="전체">모든 매물</option>
+                                <option value="원.투.쓰리룸&공동주택">원룸/주택</option>
+                                <option value="상가">상가</option>
+                                <option value="주택&건물 통매매">건물매매</option>
+                                <option value="토지">토지</option>
+                                <option value="기타">기타</option>
+                            </select>
+                            <select id="ad-usage-filter" onchange="renderAdsList()" class="w-full bg-white border border-gray-200 rounded-xl px-1 py-2 text-[11px] font-bold outline-none text-gray-600 focus:border-orange-500 shadow-sm text-center">
+                                <option value="">모든 용도</option>
+                                <option value="매매">매매</option>
+                                <option value="전세">전세</option>
+                                <option value="월세">월세</option>
+                                <option value="년세">년세</option>
+                            </select>
+                            <select id="ad-sort-type" onchange="renderAdsList()" class="w-full bg-white border border-gray-200 rounded-xl px-1 py-2 text-[11px] font-bold outline-none text-gray-600 focus:border-orange-500 shadow-sm text-center">
+                                <option value="latest">최신 등록순</option>
+                                <option value="oldest">옛날 등록순</option>
+                                <option value="no_asc" selected>No ⬆</option>
+                                <option value="no_desc">No ⬇</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div id="loadingIndicatorAds" class="hidden justify-center items-center py-10 flex-col gap-3">
+                        <div class="spinner"></div>
+                        <p class="text-xs text-gray-500 font-bold">광고 매물을 불러오는 중...</p>
+                    </div>
+
+                    <div id="ads-list" class="space-y-3"></div>
+                    
+                    <!-- Empty State -->
+                    <div id="ads-empty" class="text-center py-24 hidden">
+                        <div class="text-5xl mb-4 opacity-30">📢</div>
+                        <p class="text-gray-500 font-bold mb-1">등록된 광고 매물이 없습니다.</p>
+                        <p class="text-gray-400 text-sm">하단의 + 버튼을 눌러 새 광고를 등록하세요.</p>
+                    </div>
+
+                    <!-- FAB Add Button -->
+                    <button onclick="showAdCategoryModal()"
+                        class="fixed bottom-6 right-6 w-14 h-14 bg-orange-500 text-white rounded-full shadow-[0_4px_14px_0_rgba(249,115,22,0.39)] flex flex-col items-center justify-center text-3xl font-light hover:bg-orange-600 active:scale-90 transition-all z-50">
+                        <span class="mt-[-2px]">+</span>
+                    </button>
+                </div>
+
+                <!-- Ad Editor View -->
+                <div id="ads-editor-view" class="hidden flex-1 flex flex-col bg-white animate-fade-in-down pb-20">
+                    <div class="bg-gray-50 border-b border-gray-200 p-3 flex justify-between items-center sticky top-0 z-50 shadow-sm">
+                        <button onclick="closeAdEditor()"
+                            class="text-gray-500 font-bold text-sm px-3 py-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 shadow-sm active:scale-95 transition-all flex items-center gap-1">
+                            <span>◀</span> 뒤로
+                        </button>
+                        <div id="ad-editor-title" class="font-bold text-gray-800 text-sm">광고 매물 편집</div>
+                        <div class="flex gap-2">
+                            <button onclick="copyAdDetails()"
+                                class="text-blue-600 font-bold text-sm px-4 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 shadow-sm active:scale-95 transition-all">
+                                복사
+                            </button>
+                            <button onclick="saveCurrentAd(true)"
+                                class="text-orange-600 font-bold text-sm px-4 py-1.5 rounded-lg border border-orange-200 bg-orange-50 hover:bg-orange-100 shadow-sm active:scale-95 transition-all">
+                                저장
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div id="ad-editor-content" class="p-4 flex-1 overflow-y-auto bg-white">
+                        <!-- Dynamic form will be rendered here -->
+                    </div>
+                </div>
+
+                <!-- Category Selection Modal (Simple overlay) -->
+                <div id="ad-category-modal" class="hidden fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-6">
+                    <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+                        <h3 class="text-lg font-black text-gray-800 mb-4">매물 카테고리 선택</h3>
+                        <div class="space-y-2">
+                            <button onclick="addAd('원.투.쓰리룸&공동주택')" class="w-full py-3 px-4 bg-gray-50 hover:bg-orange-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
+                                🏠 원·투·쓰리룸 & 공동주택
+                                <span class="text-xs text-gray-400">▶</span>
+                            </button>
+                            <button onclick="addAd('상가')" class="w-full py-3 px-4 bg-gray-50 hover:bg-orange-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
+                                🏬 상가
+                                <span class="text-xs text-gray-400">▶</span>
+                            </button>
+                            <button onclick="addAd('주택&건물 통매매')" class="w-full py-3 px-4 bg-gray-50 hover:bg-orange-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
+                                🏗️ 주택&건물 통매매
+                                <span class="text-xs text-gray-400">▶</span>
+                            </button>
+                            <button onclick="addAd('토지')" class="w-full py-3 px-4 bg-gray-50 hover:bg-orange-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
+                                ⛳ 토지
+                                <span class="text-xs text-gray-400">▶</span>
+                            </button>
+                            <button onclick="addAd('기타')" class="w-full py-3 px-4 bg-gray-50 hover:bg-orange-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
+                                📦 기타 매물
+                                <span class="text-xs text-gray-400">▶</span>
+                            </button>
+                        </div>
+                        <button onclick="hideAdCategoryModal()" class="w-full mt-6 py-3 text-sm font-bold text-gray-400">취소</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: 휴지통 ===== -->
+            <div id="content-trash" class="hidden flex-1 flex flex-col bg-white">
+                <div class="flex-1 overflow-y-auto p-4 relative bg-gray-50 pb-24">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-bold text-gray-700">휴지통</h2>
+                        <button onclick="emptyTrash()" class="text-xs font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 hover:bg-red-100 transition-colors">휴지통 비우기</button>
+                    </div>
+                    
+                    <div id="loadingIndicatorTrash" class="hidden justify-center items-center py-10 flex-col gap-3">
+                        <div class="spinner"></div>
+                        <p class="text-xs text-gray-500 font-bold">휴지통 불러오는 중...</p>
+                    </div>
+
+                    <div id="trash-list" class="space-y-3"></div>
+                    
+                    <div id="trash-empty" class="text-center py-24 hidden">
+                        <div class="text-5xl mb-4 opacity-30">🗑️</div>
+                        <p class="text-gray-500 font-bold mb-1">휴지통이 비어있습니다.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <!-- ===== TAB: 공유 뷰 (Read-only) ===== -->
+    <div id="view-shared"
+        class="hidden min-h-screen flex-col bg-white px-5 py-8 animate-fade-in-down w-full absolute top-0 left-0 z-50">
+        <div class="max-w-md mx-auto w-full">
+            <div class="inline-flex items-center justify-center w-12 h-12 bg-blue-50 rounded-full mb-6">
+                <span class="text-2xl">👀</span>
+            </div>
+            <h1 id="shared-note-title" class="text-2xl font-black text-gray-800 mb-3 leading-tight">불러오는 중...
+            </h1>
+            <div class="text-xs text-gray-500 mb-8 pb-4 border-b border-gray-100 flex items-center gap-2">
+                <span id="shared-note-author" class="font-bold bg-gray-100 px-2 py-1 rounded"></span>
+                <span id="shared-note-date"></span>
+            </div>
+            <div id="shared-note-content"
+                class="text-[15px] leading-relaxed text-gray-700 whitespace-pre-wrap break-words min-h-[50vh]">
+            </div>
+
+            <div class="mt-12 pt-6 border-t border-gray-100 text-center">
+                <button onclick="window.location.href='/'"
+                    class="text-sm font-bold text-blue-600 bg-blue-50 px-5 py-2.5 rounded-full hover:bg-blue-100 transition-colors">이
+                    웹앱으로 관리 시작하기</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 스크립트: 인증 및 클라우드 연동 -->
+    <script>
+        // --- 1. 상태, 인증 및 네비게이션 관리 ---
+        let currentUserId = null;
+        let currentUserEmail = null;
+        let isSyncing = false;
+
+        // Notes State
+        let notes = [];
+        let noteSyncTimeout = null;
+
+        // Ads State
+        let ads = [];
+        let adSyncTimeout = null;
+        let currentAdCategoryFilter = '전체';
+        let isAdTableView = false;
+        let isAdCompletedTab = false;
+
+        document.addEventListener('DOMContentLoaded', () => {
+
+            // Check for Shared View First
+            const urlParams = new URLSearchParams(window.location.search);
+            const shareId = urlParams.get('share_id');
+            if (shareId) {
+                renderSharedView(shareId);
+                return; // Stop standard app initialization
+            }
+
+            checkLoginState();
+
+            // Check Google Client ID
+            const gDiv = document.getElementById('g_id_onload');
+            if (gDiv && gDiv.dataset.client_id === 'YOUR_GOOGLE_CLIENT_ID') {
+                const notice = document.getElementById('auth-notice');
+                if (notice) notice.classList.remove('hidden');
+            }
+        });
+
+        // 사용자가 Google 로그인 성공 시 트리거됩니다.
+        function handleCredentialResponse(response) {
+            console.log("Google Login Response Received", response);
+            
+            const credential = response.credential;
+            if (!credential) {
+                console.error("No credential in response");
+                alert("인증 정보가 없습니다.");
+                return;
+            }
+
+            try {
+                const payloadStr = atob(credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'));
+                const payload = JSON.parse(payloadStr);
+                console.log("JWT Payload", payload);
+
+                currentUserId = payload.sub;
+                currentUserEmail = payload.email;
+
+                localStorage.setItem('auth_token', currentUserId);
+                localStorage.setItem('user_email', currentUserEmail);
+
+                const userDisplay = document.getElementById('user-display');
+                if (userDisplay) {
+                    userDisplay.innerText = currentUserEmail.split('@')[0] + ' 님';
+                }
+
+                checkLoginState();
+                loadUserProfile();
+
+            } catch (e) {
+                console.error("JWT Parsing Error", e);
+                alert("로그인 처리 중 오류가 발생했습니다: " + e.message);
+            }
+        }
+
+        // 구글 OAuth 설정 이전에 디자인 및 개발 테스트용으로 바로 넘어갈 수 있는 우회 키
+        function mockDevLogin() {
+            currentUserId = 'mock_user_123';
+            currentUserEmail = 'test@example.com';
+            localStorage.setItem('auth_token', currentUserId);
+            localStorage.setItem('user_email', currentUserEmail);
+            document.getElementById('user-display').innerText = 'Test 님';
+            checkLoginState();
+        }
+
+        function handleLogout() {
+            localStorage.removeItem('auth_token');
+            localStorage.removeItem('user_email');
+            currentUserId = null;
+            currentUserEmail = null;
+            rentals = [];
+            checkLoginState();
+            // Google Logout (optional reset)
+            if (window.google) {
+                google.accounts.id.disableAutoSelect();
+            }
+        }
+
+        function checkLoginState() {
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('share_id')) return; // 공유 뷰에서는 메인 뷰로 전환하지 않음
+
+            const token = localStorage.getItem('auth_token');
+            const vLogin = document.getElementById('view-login');
+            const vMain = document.getElementById('view-main');
+
+            if (token) {
+                currentUserId = token;
+                currentUserEmail = localStorage.getItem('user_email');
+                if (!document.getElementById('user-display').innerText.includes('님')) {
+                    document.getElementById('user-display').innerText = (currentUserEmail ? currentUserEmail.split('@')[0] : '사용자') + ' 님';
+                    loadUserProfile();
+                }
+
+                vLogin.classList.add('hidden');
+                vMain.classList.remove('hidden', 'flex-col');
+                vMain.classList.add('flex', 'flex-col');
+                const activeTab = localStorage.getItem('activeTab') || 'rental';
+                switchTab(activeTab);
+            } else {
+                vLogin.classList.remove('hidden');
+                vMain.classList.add('hidden', 'flex-col');
+                vMain.classList.remove('flex', 'flex-col');
+            }
+        }
+
+        function switchTab(tab) {
+            localStorage.setItem('activeTab', tab);
+            const rBtn = document.getElementById('tab-rental');
+            const nBtn = document.getElementById('tab-notes');
+            const aBtn = document.getElementById('tab-ads');
+            const rContent = document.getElementById('content-rental');
+            const nContent = document.getElementById('content-notes');
+            const aContent = document.getElementById('content-ads');
+            const tBtn = document.getElementById('tab-trash');
+            const tContent = document.getElementById('content-trash');
+
+            const activeClass = "flex-1 py-3 text-center text-sm font-bold border-b-2 text-primary border-primary transition-all flex justify-center items-center gap-2";
+            const inactiveClass = "flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2";
+
+            if(rBtn) rBtn.className = inactiveClass;
+            if(nBtn) nBtn.className = inactiveClass;
+            if(aBtn) aBtn.className = inactiveClass;
+            if(tBtn) tBtn.className = inactiveClass;
+
+            if(rContent) rContent.classList.add('hidden');
+            if(nContent) nContent.classList.add('hidden');
+            if(aContent) aContent.classList.add('hidden');
+            if(tContent) tContent.classList.add('hidden');
+            document.body.classList.remove('pb-28');
+
+            if (tab === 'rental') {
+                rBtn.className = activeClass;
+                rContent.classList.remove('hidden');
+                rContent.classList.add('flex');
+                
+                if (document.getElementById('rental-editor-view').classList.contains('hidden')) {
+                    loadRentalsFromCloud();
+                }
+                document.getElementById('sync-icon').classList.remove('hidden');
+                setTimeout(() => document.getElementById('sync-icon').classList.add('hidden'), 2000);
+            } else if (tab === 'notes') {
+                nBtn.className = activeClass;
+                nContent.classList.remove('hidden');
+                nContent.classList.add('flex');
+
+                // 에디터가 열려있지 않을 때만 목록 새로고침
+                if (document.getElementById('note-editor-view').classList.contains('hidden')) {
+                    loadNotesFromCloud();
+                }
+                document.getElementById('sync-icon-notes').classList.remove('hidden');
+                setTimeout(() => document.getElementById('sync-icon-notes').classList.add('hidden'), 2000);
+            } else if (tab === 'ads') {
+                aBtn.className = activeClass;
+                aContent.classList.remove('hidden');
+                aContent.classList.add('flex');
+
+                if (document.getElementById('ads-editor-view').classList.contains('hidden')) {
+                    loadAdsFromCloud();
+                }
+            } else if (tab === 'trash') {
+                if (tBtn) tBtn.className = activeClass;
+                if (tContent) {
+                    tContent.classList.remove('hidden');
+                    tContent.classList.add('flex');
+                }
+                loadTrashFromCloud();
+            }
+        }
+
+        // --- 2. 클라우드 연동 임대관리 (Rental) 로직 ---
+        let rentals = [];
+        // 타이머 캐싱으로 너무 잦은 API 통신 막기
+        let syncTimeout = null;
+
+        async function fetchWithAuth(url, options = {}) {
+            const token = localStorage.getItem('auth_token');
+            if (!token) return null;
+
+            options.headers = {
+                ...options.headers,
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            };
+
+            try {
+                const response = await fetch(url, options);
+                if (response.status === 401) {
+                    handleLogout();
+                    return null;
+                }
+                const data = await response.json();
+                return data;
+            } catch (error) {
+                console.error('API Error:', error);
+                return null;
+            }
+        }
+
+        // --- 1.1 유저 프로필(닉네임) 로드 및 변경 ---
+        async function loadUserProfile() {
+            const token = localStorage.getItem('auth_token');
+            if (!token) return;
+            try {
+                const res = await fetchWithAuth('/api/profile');
+                if (res && res.id) {
+                    const displayName = res.nickname || currentUserEmail.split('@')[0];
+                    document.getElementById('user-display').innerText = displayName + ' 님';
+                }
+            } catch (e) {
+                console.error('프로필 로드 실패', e);
+            }
+        }
+
+        async function changeNickname() {
+            const currentName = document.getElementById('user-display').innerText.replace(' 님', '');
+            const newName = prompt("변경할 새로운 닉네임을 입력하세요\n(공백으로 두면 기본 구글 이메일 아이디가 사용됩니다.)", currentName);
+
+            if (newName !== null) {
+                const res = await fetchWithAuth('/api/profile', {
+                    method: 'POST',
+                    body: JSON.stringify({ nickname: newName.trim(), email: currentUserEmail })
+                });
+
+                if (res && res.success) {
+                    const displayName = res.nickname || currentUserEmail.split('@')[0];
+                    document.getElementById('user-display').innerText = displayName + ' 님';
+                    alert('닉네임이 성공적으로 변경되었습니다!');
+                } else {
+                    alert('닉네임 변경 중 오류가 발생했습니다.');
+                }
+            }
+        }
+
+        // --- 2. 임대관리 관련 로직 ---
+        async function loadRentalsFromCloud() {
+            document.getElementById('loadingIndicator').classList.remove('hidden');
+            document.getElementById('rental-list').innerHTML = '';
+            document.getElementById('rental-empty').classList.add('hidden');
+
+            const data = await fetchWithAuth('/api/rentals');
+            
+            if (data && data.error) {
+                alert('데이터 로드 실패: ' + data.error);
+            }
+
+            document.getElementById('loadingIndicator').classList.add('hidden');
+
+            if (data && Array.isArray(data)) {
+                rentals = data;
+            } else {
+                rentals = [];
+            }
+            renderRentals();
+        }
+
+        async function addRental() {
+            const today = new Date();
+            const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+            const newRental = {
+                email: currentUserEmail,
+                type: '원룸',
+                date: dateStr, movein: '', address: '', room: '',
+                deposit: '', premium: '', rent: '', yearly_rent: '', maintenance: '',
+                inc_internet: false, inc_tv: false, inc_water: false,
+                structure: '', options: '', special_notes: '', phone: '', common_pwd: '', unit_pwd: '',
+                business_name: '', exclusive_area: '', supply_area: '',
+                land_area: '', total_floor_area: '', sale_price: '', current_loan: '',
+                completion_date: '', building_config: '', total_deposit: '', total_monthly_income: '', loan_interest_rate: '',
+                status: '진행중'
+            };
+
+            // 낙관적 UI 업데이트: 먼저 화면에 표시하고 통신
+            const tempId = 'temp_' + Date.now();
+            newRental.id = tempId;
+            rentals.unshift(newRental);
+            renderRentals();
+            
+            // 새 매물 생성 시 바로 에디터 열기
+            openRentalEditor(tempId);
+
+            const result = await fetchWithAuth('/api/rentals', {
+                method: 'POST',
+                body: JSON.stringify(newRental)
+            });
+
+            // 진짜 ID로 교체
+            if (result && result.success && result.id) {
+                const index = rentals.findIndex(r => r.id === tempId);
+                if (index > -1) {
+                    rentals[index].id = result.id;
+                    renderRentals(); // ID 업데이트 반영 (카드 이벤트 리스너 리바인딩용)
+                    
+                    // 에디터가 열려있고 해당 tempId를 가리키고 있다면 DOM의 data-id도 업데이트
+                    const editorCard = document.querySelector(`#rental-editor-view [data-id="${tempId}"]`);
+                    if (editorCard) {
+                        editorCard.setAttribute('data-id', result.id);
+                    }
+                }
+            } else {
+                const errorMsg = (result && result.error) ? result.error : "서버 응답 오류 (DB 연결 확인 필요)";
+                alert(`매물 저장에 실패했습니다: ${errorMsg}`);
+                // 실패 시 롤백
+                rentals = rentals.filter(r => r.id !== tempId);
+                renderRentals();
+                closeRentalEditor();
+            }
+        }
+
+        async function deleteRental(id) {
+            if (confirm('클라우드 서버에서 이 매물 카드를 영구 삭제하시겠습니까?')) {
+                // 낙관적 UI 삭제
+                rentals = rentals.filter(r => r.id !== id);
+                renderRentals();
+
+                if (!id.startsWith('temp_')) {
+                    await fetchWithAuth(`/api/rentals?id=${id}`, { method: 'DELETE' });
+                }
+            }
+        }
+
+        function updateRental(id, field, value) {
+            const rental = rentals.find(r => r.id === id);
+            if (rental) {
+                rental[field] = value;
+
+                // 디바운스 처리하여 구름(Cloud) 저장
+                if (syncTimeout) clearTimeout(syncTimeout);
+                document.getElementById('sync-icon').classList.remove('hidden');
+
+                syncTimeout = setTimeout(() => {
+                    syncToCloud(rental);
+                }, 1000); // 1초간 변화 없으면 저장 (입력중 불필요한 API 호출 방지)
+            }
+        }
+
+        async function syncToCloud(rental) {
+            if (rental.id.startsWith('temp_')) return; // 아직 ID 발급 못받은건 무시
+            rental.email = currentUserEmail;
+            const res = await fetchWithAuth('/api/rentals', {
+                method: 'POST', // 우리 백엔드 POST 로직이 사실상 Upsert 기능을 하므로 재활용하거나 분리. 여기서는 단순화 위해.
+                body: JSON.stringify(rental)
+            });
+            if (!res || !res.success) {
+                const errorMsg = (res && res.error) ? res.error : "서버 응답 오류";
+                console.error('Sync failed', res);
+                // 실시간 동기화 실패는 조용히 로그만 남기거나 아이콘 색상 변경 등으로 알림 (여기서는 로그)
+            }
+            document.getElementById('sync-icon').classList.add('hidden');
+        }
+
+        function renderRentals() {
+            const list = document.getElementById('rental-list');
+            const empty = document.getElementById('rental-empty');
+            const indicator = document.getElementById('loadingIndicator');
+
+            if (!indicator.classList.contains('hidden')) return; // 로딩중이면 무시
+
+            if (!rentals || rentals.length === 0) {
+                list.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            list.innerHTML = rentals.map(r => {
+                const icons = {
+                    '원룸': '🏠', '1.5룸': '🏡', '투룸': '🏢', '쓰리룸': '🏢',
+                    '아파트': '🏢', '빌라': '🏘️', '주택': '🏠', '상가': '🏬',
+                    '건물': '🏗️', '토지': '🌳', '기타': '📦'
+                };
+                const icon = icons[r.type] || '🏠';
+                const status = r.status || '진행중';
+                const statusColor = status === '계약완료' ? 'bg-gray-400' : (status === '보류' ? 'bg-orange-400' : 'bg-darkgreen');
+
+                const dateObj = r.date ? new Date(r.date) : (r.created_at ? new Date(r.created_at) : new Date());
+                const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`;
+
+                const addressPart = r.address ? `${r.address} ${r.room || ''}`.trim() : '주소 미입력';
+                const businessPart = r.business_name ? `(${r.business_name})` : '';
+                const title = `${addressPart} ${businessPart}`.trim() || '정보 미입력 매물';
+                const premiumStr = r.premium ? ` / 권 ${r.premium}` : '';
+                const rentStr = r.rent ? ` / 월 ${r.rent}` : (r.yearly_rent ? ` / 년 ${r.yearly_rent}` : '');
+                const depositStr = r.deposit ? `보 ${r.deposit}` : '보증금 미입력';
+                const summary = `${depositStr}${rentStr}${premiumStr}`;
+
+                return `
+                <div class="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 p-4 cursor-pointer hover:border-darkgreen transition-colors active:scale-[0.98] relative overflow-hidden" onclick="openRentalEditor('${r.id}')">
+                    <div class="absolute top-0 right-0 px-2 py-0.5 ${statusColor} text-white text-[0.6rem] font-black rounded-bl-lg">${status}</div>
+                    <div class="flex justify-between items-start mb-2">
+                        <div class="flex items-center gap-2 overflow-hidden">
+                            <span class="text-lg">${icon}</span>
+                            <span class="text-xs font-black px-2 py-0.5 rounded bg-green-50 text-darkgreen whitespace-nowrap border border-green-100">${r.type || '원룸'}</span>
+                            <h3 class="font-black text-gray-800 text-[1.1rem] truncate">${title}</h3>
+                        </div>
+                    </div>
+                    <p class="text-[0.9rem] font-bold text-gray-600 mb-3 truncate bg-gray-50 inline-block px-2 py-1 rounded-md">${summary}</p>
+                    <div class="flex justify-between items-center text-[0.7rem] text-gray-400 font-medium pt-2 border-t border-gray-50">
+                        <span>등록일: ${dateStr}</span>
+                        <div class="flex items-center gap-3">
+                            <span>${r.movein ? '입주: ' + r.movein : '입주일 미정'}</span>
+                            <button onclick="event.stopPropagation(); deleteRental('${r.id}')" class="text-red-300 hover:text-red-500 transition-colors p-1" title="즉시 삭제">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            `}).join('');
+        }
+
+        function openRentalEditor(id) {
+            const r = rentals.find(item => item.id === id);
+            if (!r) return;
+
+            document.getElementById('rental-list-view').classList.add('hidden');
+            document.getElementById('rental-editor-view').classList.remove('hidden');
+
+            const content = document.getElementById('rental-editor-content');
+            
+            content.innerHTML = `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8" data-id="${r.id}">
+                    <div class="flex justify-between items-center bg-gray-50 border-b border-gray-100 p-3 pl-4">
+                        <div class="flex items-center gap-2">
+                            <span class="text-lg">🏷️</span>
+                            <select class="rental-input rental-select text-[0.9rem] font-black text-darkgreen bg-transparent outline-none py-1 tracking-wide" data-field="type">
+                                <option value="원룸" ${r.type === '원룸' ? 'selected' : ''}>원룸</option>
+                                <option value="1.5룸" ${r.type === '1.5룸' ? 'selected' : ''}>1.5룸</option>
+                                <option value="투룸" ${r.type === '투룸' ? 'selected' : ''}>투룸</option>
+                                <option value="쓰리룸" ${r.type === '쓰리룸' ? 'selected' : ''}>쓰리룸</option>
+                                <option value="아파트" ${r.type === '아파트' ? 'selected' : ''}>아파트</option>
+                                <option value="빌라" ${r.type === '빌라' ? 'selected' : ''}>빌라</option>
+                                <option value="주택" ${r.type === '주택' ? 'selected' : ''}>주택</option>
+                                <option value="상가" ${r.type === '상가' ? 'selected' : ''}>상가</option>
+                                <option value="건물" ${r.type === '건물' ? 'selected' : ''}>건물</option>
+                                <option value="기타" ${r.type === '기타' ? 'selected' : ''}>기타</option>
+                            </select>
+                            <div class="h-4 w-[1px] bg-gray-200 mx-1"></div>
+                            <select class="rental-input rental-select text-[0.8rem] font-bold text-gray-600 bg-transparent outline-none py-1" data-field="status">
+                                <option value="진행중" ${r.status === '진행중' ? 'selected' : ''}>진행중</option>
+                                <option value="계약완료" ${r.status === '계약완료' ? 'selected' : ''}>계약완료</option>
+                                <option value="보류" ${r.status === '보류' ? 'selected' : ''}>보류</option>
+                            </select>
+                        </div>
+                        <div class="flex gap-2">
+                            <button onclick="convertRentalToAd('${r.id}')" class="text-blue-600 hover:text-white hover:bg-blue-600 font-bold text-xs px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 shadow-sm active:scale-95 transition-all">광고로 등록</button>
+                            <button onclick="copyToClipboard('${r.id}')" class="text-darkgreen hover:text-white hover:bg-darkgreen font-bold text-xs px-3 py-1.5 rounded-lg border border-green-100 bg-green-50 shadow-sm active:scale-95 transition-all">카톡 복사</button>
+                            <button onclick="deleteRental('${r.id}')" class="text-red-400 hover:text-red-500 font-bold text-xs px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 shadow-sm active:scale-95 transition-all">의뢰서 삭제</button>
+                        </div>
+                    </div>
+                    <div class="p-4 space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div class="col-span-2 flex gap-3">
+                                <div class="flex-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">작성일</label>
+                                    <input type="date" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-700 font-medium" data-field="date" value="${r.date || ''}">
+                                </div>
+                                <div class="flex-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">입주 가능일</label>
+                                    <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="즉시/협의 등" data-field="movein" value="${r.movein || ''}">
+                                </div>
+                            </div>
+                            <div class="col-span-2">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">주소 및 상호명/호수</label>
+                                <div class="flex gap-2 mb-2">
+                                    <input type="text" class="rental-input flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800" placeholder="상세 주소" data-field="address" value="${r.address || ''}">
+                                </div>
+                                <div class="flex gap-2">
+                                    <input type="text" class="rental-input flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800" placeholder="상호명" data-field="business_name" value="${r.business_name || ''}">
+                                    <input type="text" class="rental-input w-24 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800 text-center" placeholder="호실" data-field="room" value="${r.room || ''}">
+                                </div>
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">전용면적</label>
+                                <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 25.4㎡ / 7.7평" data-field="exclusive_area" value="${r.exclusive_area || ''}">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">공급면적</label>
+                                <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 33.1㎡ / 10평" data-field="supply_area" value="${r.supply_area || ''}">
+                            </div>
+                            <div class="col-span-1 area-field ${['주택', '상가', '건물'].includes(r.type) ? '' : 'hidden'}">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">대지면적 (㎡)</label>
+                                <input type="text" inputmode="decimal" class="rental-input area-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="0.0" data-field="land_area" value="${r.land_area || ''}">
+                            </div>
+                            <div class="col-span-1 area-field ${['주택', '상가', '건물'].includes(r.type) ? '' : 'hidden'}">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">연면적 (㎡)</label>
+                                <input type="text" inputmode="decimal" class="rental-input area-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="0.0" data-field="total_floor_area" value="${r.total_floor_area || ''}">
+                            </div>
+                            <div class="col-span-2 grid grid-cols-2 gap-3 pt-1 border-t border-gray-100 mt-1">
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">보증금 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">보</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-black text-gray-800 pl-8 text-right" placeholder="0.0" data-field="deposit" value="${r.deposit || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">권리금 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">권</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-black text-gray-800 pl-8 text-right" placeholder="0.0" data-field="premium" value="${r.premium || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-green-700 mb-1 ml-1 tracking-tight">월세 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-green-600/50 text-xs font-black select-none pointer-events-none">월</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-green-50/50 border border-green-200 focus:border-green-600 focus:ring-1 focus:ring-green-600 rounded-lg text-[0.95rem] font-black text-green-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="rent" value="${r.rent || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-blue-700 mb-1 ml-1 tracking-tight">년세 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-blue-600/50 text-xs font-black select-none pointer-events-none">년</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-blue-50/50 border border-blue-200 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-lg text-[0.95rem] font-black text-blue-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="yearly_rent" value="${r.yearly_rent || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-red-700 mb-1 ml-1 tracking-tight">매매가 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-red-600/50 text-xs font-black select-none pointer-events-none">매</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-red-50/50 border border-red-200 focus:border-red-600 focus:ring-1 focus:ring-red-600 rounded-lg text-[0.95rem] font-black text-red-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="sale_price" value="${r.sale_price || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-orange-700 mb-1 ml-1 tracking-tight">현 융자금액 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-orange-600/50 text-xs font-black select-none pointer-events-none">융</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-orange-50/50 border border-orange-200 focus:border-orange-600 focus:ring-1 focus:ring-orange-600 rounded-lg text-[0.95rem] font-black text-orange-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="current_loan" value="${r.current_loan || ''}">
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <!-- 건물 매매 전용 투자 분석 항목 -->
+                            <div class="col-span-2 grid grid-cols-2 gap-3 pt-3 border-t-2 border-dashed border-gray-200 mt-2 building-field ${['건물', '상가'].includes(r.type) ? '' : 'hidden'}">
+                                <div class="col-span-2 bg-indigo-50 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-md mb-1 inline-block w-max">
+                                    📊 건물/상가 수익률 분석표
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">준공일</label>
+                                    <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-700 font-medium" placeholder="예: 2020-05-15" data-field="completion_date" value="${r.completion_date || ''}">
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">세대수 구성</label>
+                                    <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 상가 1, 투룸 2" data-field="building_config" value="${r.building_config || ''}">
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">총 보증금 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">총보</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input calc-trigger w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg text-sm font-black text-gray-800 pl-10 text-right" placeholder="0.0" data-field="total_deposit" value="${r.total_deposit || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">월 총수입 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">총수</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input calc-trigger w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg text-sm font-black text-gray-800 pl-10 text-right" placeholder="0.0" data-field="total_monthly_income" value="${r.total_monthly_income || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-2">
+                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">대출 금리 (%)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute right-4 text-gray-400 text-sm font-black select-none pointer-events-none">%</span>
+                                        <input type="text" inputmode="decimal" class="rental-input calc-trigger w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 rounded-lg text-sm font-black text-gray-800 text-right pr-8" placeholder="예: 4.5" data-field="loan_interest_rate" value="${r.loan_interest_rate || ''}">
+                                    </div>
+                                </div>
+                                
+                                <!-- 자동 계산 결과 영역 -->
+                                <div class="col-span-2 bg-indigo-50/50 rounded-xl p-4 mt-2 border border-indigo-100 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs font-bold text-gray-500">실투자금</span>
+                                        <span class="text-sm font-black text-indigo-900" id="calc-investment">0만원</span>
+                                    </div>
+                                    <div class="flex justify-between items-center mb-2">
+                                        <span class="text-xs font-bold text-gray-500">월 순수익 (이자 제외)</span>
+                                        <span class="text-sm font-black text-indigo-900" id="calc-net-income">0만원</span>
+                                    </div>
+                                    <div class="flex justify-between items-center pt-2 border-t border-indigo-200">
+                                        <span class="text-sm font-black text-indigo-800">예상 수익률</span>
+                                        <span class="text-lg font-black text-red-600" id="calc-yield">0.0%</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col-span-2 mt-2">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">관리비 (만원)</label>
+                                <div class="relative flex items-center">
+                                    <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">관</span>
+                                    <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-[0.95rem] font-black text-gray-800 pl-8 text-right" placeholder="0.0" data-field="maintenance" value="${r.maintenance || ''}">
+                                </div>
+                            </div>
+                            <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-2 ml-1 tracking-tight">관리비 포함 내역 (인/유/수)</label>
+                                <div class="flex gap-2">
+                                    <label class="check-pill flex-1 cursor-pointer">
+                                        <input type="checkbox" class="rental-check hidden" data-field="inc_internet" ${r.inc_internet ? 'checked' : ''}>
+                                        <div class="text-center py-2.5 border border-gray-200 rounded-lg text-xs font-bold transition-all bg-gray-50 text-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">인터넷</div>
+                                    </label>
+                                    <label class="check-pill flex-1 cursor-pointer">
+                                        <input type="checkbox" class="rental-check hidden" data-field="inc_tv" ${r.inc_tv ? 'checked' : ''}>
+                                        <div class="text-center py-2.5 border border-gray-200 rounded-lg text-xs font-bold transition-all bg-gray-50 text-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">유선방송</div>
+                                    </label>
+                                    <label class="check-pill flex-1 cursor-pointer">
+                                        <input type="checkbox" class="rental-check hidden" data-field="inc_water" ${r.inc_water ? 'checked' : ''}>
+                                        <div class="text-center py-2.5 border border-gray-200 rounded-lg text-xs font-bold transition-all bg-gray-50 text-gray-400 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)]">수도</div>
+                                    </label>
+                                </div>
+                            </div>
+                            <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">구조</label>
+                                <input type="text" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium" placeholder="오픈형, 분리형, 복층 등" data-field="structure" value="${r.structure || ''}">
+                            </div>
+                            <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">옵션</label>
+                                <input type="text" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium" placeholder="에어컨, 세탁기 등" data-field="options" value="${r.options || ''}">
+                            </div>
+                            <div class="col-span-1 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.7rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">1층 공동현관 비번</label>
+                                <input type="text" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium" placeholder="예: *1234#" data-field="common_pwd" value="${r.common_pwd || ''}">
+                            </div>
+                            <div class="col-span-1 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.7rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">세대 비밀번호</label>
+                                <input type="text" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium" placeholder="예: 4321*" data-field="unit_pwd" value="${r.unit_pwd || ''}">
+                            </div>
+                            <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">특이사항</label>
+                                <textarea rows="2" class="rental-input w-full p-3 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium resize-none" placeholder="기타 특이사항 입력" data-field="special_notes">${r.special_notes || ''}</textarea>
+                            </div>
+                            <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">전화번호</label>
+                                <div class="flex items-center gap-2">
+                                    <input type="tel" class="rental-input flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-primary tracking-widest leading-none h-[44px]" placeholder="010-0000-0000" data-field="phone" value="${r.phone || ''}">
+                                    <a href="tel:${r.phone || ''}" id="phone-call-btn" class="flex items-center justify-center w-[44px] h-[44px] bg-darkgreen text-white rounded-lg border border-darkgreen hover:bg-green-700 transition-colors shadow-sm ${!r.phone ? 'opacity-50 pointer-events-none' : ''}" onclick="if(!this.getAttribute('href').replace('tel:', '')) return false;" title="전화걸기">
+                                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                            <path d="M2 3a1 1 0 011-1h2.153a1 1 0 01.986.836l.74 4.435a1 1 0 01-.54 1.06l-1.548.773a11.037 11.037 0 006.105 6.105l.774-1.548a1 1 0 011.059-.54l4.435.74a1 1 0 01.836.986V17a1 1 0 01-1 1h-2C7.82 18 2 12.18 2 5V3z" />
+                                        </svg>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // 이벤트 바인딩 (현재 열린 에디터 내부의 요소만 대상)
+            const editorEl = document.getElementById('rental-editor-view');
+            editorEl.querySelectorAll('.rental-input, textarea.rental-input').forEach(el => {
+                el.addEventListener('input', (e) => {
+                    const card = e.target.closest('[data-id]');
+                    if(!card) return;
+                    const id = card.getAttribute('data-id');
+                    const field = e.target.getAttribute('data-field');
+                    let value = e.target.value;
+
+                    if (field === 'phone') {
+                        const callBtn = editorEl.querySelector('#phone-call-btn');
+                        if (callBtn) {
+                            callBtn.href = `tel:${value}`;
+                            if (value.trim() === '') {
+                                callBtn.classList.add('opacity-50', 'pointer-events-none');
+                            } else {
+                                callBtn.classList.remove('opacity-50', 'pointer-events-none');
+                            }
+                        }
+                    }
+
+                    // '건물', '주택', '상가'일 때만 대지/연면적 노출
+                    if (field === 'type') {
+                        const areaFields = editorEl.querySelectorAll('.area-field');
+                        const isVisible = ['주택', '상가', '건물'].includes(value);
+                        areaFields.forEach(f => {
+                            if (isVisible) f.classList.remove('hidden');
+                            else f.classList.add('hidden');
+                        });
+                        
+                        const buildingFields = editorEl.querySelectorAll('.building-field');
+                        const isBuilding = ['상가', '건물'].includes(value);
+                        buildingFields.forEach(f => {
+                            if (isBuilding) f.classList.remove('hidden');
+                            else f.classList.add('hidden');
+                        });
+                    }
+
+                    // 면적 입력 시 자동 평수 계산 문구 업데이트
+                    if (e.target.classList.contains('area-input')) {
+                        const num = parseFloat(value.replace(/[^0-9.]/g, ''));
+                        if (!isNaN(num)) {
+                            const pyeong = (num * 0.3025).toFixed(1);
+                            e.target.title = `${pyeong}평`;
+                        }
+                    }
+
+                    // 수익률 자동 계산 로직
+                    if (e.target.classList.contains('calc-trigger') || field === 'sale_price' || field === 'current_loan') {
+                        setTimeout(() => calculateROI(editorEl), 50);
+                    }
+
+                    if (e.target.classList.contains('money-input')) {
+                        // Check if the input is during Korean IME composition to prevent clearing the entire field
+                        if (e.isComposing) return;
+                        
+                        let num = value.replace(/[^0-9.]/g, '');
+                        if (num === '') {
+                            e.target.value = '';
+                            updateRental(id, field, '');
+                            return;
+                        }
+
+                        const parts = num.split('.');
+                        if (parts.length > 2) {
+                            num = parts[0] + '.' + parts.slice(1).join('');
+                        }
+
+                        let [integerPart, decimalPart] = num.split('.');
+                        if (integerPart) {
+                            integerPart = Number(integerPart.replace(/,/g, '')).toLocaleString();
+                        }
+                        
+                        const formattedValue = decimalPart !== undefined ? `${integerPart}.${decimalPart}` : integerPart;
+                        // Only update the input value if it has actually changed to avoid messing up caret position constantly
+                        if (e.target.value !== formattedValue) {
+                            e.target.value = formattedValue;
+                        }
+                        value = formattedValue;
+                    }
+                    updateRental(id, field, value);
+                });
+            });
+
+            // 초기 수익률 계산
+            calculateROI(editorEl);
+
+            editorEl.querySelectorAll('.rental-check').forEach(el => {
+                el.addEventListener('change', (e) => {
+                    const card = e.target.closest('[data-id]');
+                    if(!card) return;
+                    const id = card.getAttribute('data-id');
+                    const field = e.target.getAttribute('data-field');
+                    updateRental(id, field, e.target.checked);
+                });
+            });
+        }
+
+        function calculateROI(editorEl) {
+            const getVal = (field) => {
+                const el = editorEl.querySelector(`[data-field="${field}"]`);
+                if(!el) return 0;
+                return parseFloat(el.value.replace(/[^0-9.-]/g, '')) || 0;
+            };
+
+            const salePrice = getVal('sale_price'); // 매매가
+            const loan = getVal('current_loan'); // 융자
+            const totalDeposit = getVal('total_deposit'); // 총보증금
+            const monthlyIncome = getVal('total_monthly_income'); // 총월세
+            const interestRate = getVal('loan_interest_rate'); // 이자율(%)
+
+            const actualInvestment = salePrice - loan - totalDeposit;
+            const annualInterest = loan * (interestRate / 100);
+            const monthlyInterest = annualInterest / 12;
+            const netMonthlyIncome = monthlyIncome - monthlyInterest;
+            
+            let roi = 0;
+            if (actualInvestment > 0) {
+                roi = ((netMonthlyIncome * 12) / actualInvestment) * 100;
+            }
+
+            const invEl = editorEl.querySelector('#calc-investment');
+            const netEl = editorEl.querySelector('#calc-net-income');
+            const roiEl = editorEl.querySelector('#calc-yield');
+
+            if(invEl) invEl.innerText = actualInvestment.toLocaleString() + '만원';
+            if(netEl) netEl.innerText = Math.round(netMonthlyIncome).toLocaleString() + '만원';
+            if(roiEl) roiEl.innerText = roi.toFixed(1) + '%';
+        }
+
+        async function handleRentalSaveClick() {
+            if (syncTimeout) clearTimeout(syncTimeout);
+            
+            const editorCard = document.querySelector('#rental-editor-view [data-id]');
+            if (editorCard) {
+                const id = editorCard.getAttribute('data-id');
+                const rental = rentals.find(r => r.id === id);
+                if (rental && !rental.id.startsWith('temp_')) {
+                    document.getElementById('sync-icon').classList.remove('hidden');
+                    await syncToCloud(rental);
+                } else if (rental && rental.id.startsWith('temp_')) {
+                    // Try to wait a bit if it is still tempid (creation in progress)
+                    await new Promise(r => setTimeout(r, 1000));
+                    const updatedRental = rentals.find(r => r.id === id) || rentals.find(r => r === rental); // find ref
+                    if(updatedRental && !updatedRental.id.startsWith('temp_')) {
+                        await syncToCloud(updatedRental);
+                    }
+                }
+            }
+            closeRentalEditor();
+        }
+
+        function closeRentalEditor() {
+            document.getElementById('rental-editor-view').classList.add('hidden');
+            document.getElementById('rental-list-view').classList.remove('hidden');
+            // 에디터 닫을 때 목록에 변경사항 즉시 반영
+            renderRentals();
+        }
+
+        async function copyToClipboard(id) {
+            const r = rentals.find(item => item.id === id);
+            if (!r) return;
+
+            const premiumStr = r.premium ? `\n- 권리금: ${r.premium}만원` : '';
+            const rentStr = r.rent ? `\n- 월세: ${r.rent}만원` : (r.yearly_rent ? `\n- 년세: ${r.yearly_rent}만원` : '');
+            const maintenanceStr = r.maintenance ? `\n- 관리비: ${r.maintenance}만원` : '';
+            const addressStr = r.address ? `\n- 위치: ${r.address} ${r.room || ''}` : '';
+            const areaStr = r.exclusive_area ? `\n- 면적: ${r.exclusive_area}` : '';
+            const structureStr = r.structure ? `\n- 구조: ${r.structure}` : '';
+            const optionsStr = r.options ? `\n- 옵션: ${r.options}` : '';
+            const noteStr = r.special_notes ? `\n- 특이사항: ${r.special_notes}` : '';
+
+            let buildingStr = '';
+            if (['건물', '상가'].includes(r.type)) {
+                const salePrice = parseFloat(r.sale_price) || 0;
+                const loan = parseFloat(r.current_loan) || 0;
+                const totalDeposit = parseFloat(r.total_deposit) || 0;
+                const actualInv = salePrice - loan - totalDeposit;
+                buildingStr = `\n\n[📊 수익률 분석]\n- 준공일: ${r.completion_date || '-'}\n- 세대구성: ${r.building_config || '-'}\n- 총보증금: ${r.total_deposit || 0}만원\n- 실투자금: ${actualInv}만원\n- 총월수입: ${r.total_monthly_income || 0}만원\n- 수익률(예상): 현장 문의`;
+            }
+
+            const text = `[${r.type} 매물정보]\n- 상태: ${r.status || '진행중'}\n- 가격: 보증금 ${r.deposit || 0}만원${rentStr}${premiumStr}${maintenanceStr}${addressStr}${areaStr}${structureStr}${optionsStr}${noteStr}${buildingStr}\n\n문의 부탁드립니다. 😊`;
+
+            try {
+                await navigator.clipboard.writeText(text);
+                alert('카톡 공유용 텍스트가 복사되었습니다!');
+            } catch (err) {
+                alert('복사 실패: ' + err);
+            }
+        }
+
+        // --- 2.5 자유노트 (Notes) 로직 ---
+        async function loadNotesFromCloud() {
+            document.getElementById('loadingIndicatorNotes').classList.remove('hidden');
+            document.getElementById('notes-list').innerHTML = '';
+            document.getElementById('notes-empty').classList.add('hidden');
+
+            const data = await fetchWithAuth('/api/notes');
+            document.getElementById('loadingIndicatorNotes').classList.add('hidden');
+
+            if (data && Array.isArray(data)) {
+                notes = data;
+            } else {
+                notes = [];
+            }
+            renderNotesList();
+        }
+
+        function renderNotesList() {
+            const list = document.getElementById('notes-list');
+            const empty = document.getElementById('notes-empty');
+
+            if (!notes || notes.length === 0) {
+                list.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            list.innerHTML = notes.map(n => {
+                const dateObj = new Date(n.updated_at || n.created_at || Date.now());
+                const dateStr = `${dateObj.getMonth() + 1}/${dateObj.getDate()} ${String(dateObj.getHours()).padStart(2, '0')}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+                const preview = n.content ? n.content.substring(0, 40) + (n.content.length > 40 ? '...' : '') : '내용 없음';
+
+                return `
+                <div class="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 p-4 cursor-pointer hover:border-blue-300 transition-colors active:scale-[0.98]" onclick="openNoteEditor('${n.id}')">
+                    <div class="flex justify-between items-start mb-1">
+                        <h3 class="font-black text-gray-800 text-[1.05rem] truncate pr-2">${n.title || '제목 없는 노트'}</h3>
+                        <div class="flex items-center gap-2">
+                            ${n.is_shared ? '<span class="bg-blue-100 text-blue-700 text-[10px] px-1.5 py-0.5 rounded font-bold whitespace-nowrap">공유중</span>' : ''}
+                            <button onclick="event.stopPropagation(); deleteNote('${n.id}')" class="text-red-400 hover:text-red-500 font-bold text-xs px-2 py-1 rounded bg-red-50 border border-red-100 transition-all">삭제</button>
+                        </div>
+                    </div>
+                    <p class="text-sm text-gray-500 mb-3 truncate">${preview}</p>
+                    <div class="text-[0.7rem] text-gray-400 font-medium">${dateStr}</div>
+                </div>
+            `}).join('');
+        }
+
+        function createNote() {
+            const newId = 'temp_' + Date.now();
+            const newNote = {
+                id: newId,
+                title: '',
+                content: '',
+                is_shared: 0,
+                updated_at: new Date().toISOString()
+            };
+            notes.unshift(newNote);
+            openNoteEditor(newId);
+        }
+
+        function openNoteEditor(id) {
+            const note = notes.find(n => n.id === id);
+            if (!note) return;
+
+            document.getElementById('notes-list-view').classList.add('hidden');
+            document.getElementById('note-editor-view').classList.remove('hidden');
+
+            document.getElementById('editor-note-id').value = note.id;
+            document.getElementById('editor-note-title').value = note.title;
+            document.getElementById('editor-note-content').value = note.content;
+
+            const dateObj = new Date(note.updated_at || Date.now());
+            document.getElementById('editor-note-date').innerText = `${dateObj.getFullYear()}년 ${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`;
+
+            // 공유 토글 UI 업데이트
+            const toggleCb = document.getElementById('note-share-toggle');
+            const toggleBg = document.getElementById('share-toggle-bg');
+            const toggleDot = document.getElementById('share-toggle-dot');
+            const shareText = document.getElementById('share-status-text');
+            const shareLinkBtn = document.getElementById('editor-note-share-link');
+
+            toggleCb.checked = !!note.is_shared;
+            if (note.is_shared) {
+                toggleBg.classList.replace('bg-gray-300', 'bg-blue-500');
+                toggleDot.classList.add('translate-x-4');
+                shareText.innerText = '공유 켜짐';
+                shareText.classList.add('text-blue-600');
+                shareLinkBtn.classList.remove('hidden');
+            } else {
+                toggleBg.classList.replace('bg-blue-500', 'bg-gray-300');
+                toggleDot.classList.remove('translate-x-4');
+                shareText.innerText = '공유 끄기';
+                shareText.classList.remove('text-blue-600');
+                shareLinkBtn.classList.add('hidden');
+            }
+        }
+
+        function closeNoteEditor() {
+            // 즉시 저장 한 번 시도
+            saveCurrentNoteState();
+
+            document.getElementById('note-editor-view').classList.add('hidden');
+            document.getElementById('notes-list-view').classList.remove('hidden');
+            renderNotesList();
+        }
+
+        function toggleNoteShare(checkbox) {
+            const isShared = checkbox.checked;
+            const toggleBg = document.getElementById('share-toggle-bg');
+            const toggleDot = document.getElementById('share-toggle-dot');
+            const shareText = document.getElementById('share-status-text');
+            const shareLinkBtn = document.getElementById('editor-note-share-link');
+
+            if (isShared) {
+                toggleBg.classList.replace('bg-gray-300', 'bg-blue-500');
+                toggleDot.classList.add('translate-x-4');
+                shareText.innerText = '공유 켜짐';
+                shareText.classList.add('text-blue-600');
+                shareLinkBtn.classList.remove('hidden');
+            } else {
+                toggleBg.classList.replace('bg-blue-500', 'bg-gray-300');
+                toggleDot.classList.remove('translate-x-4');
+                shareText.innerText = '공유 끄기';
+                shareText.classList.remove('text-blue-600');
+                shareLinkBtn.classList.add('hidden');
+            }
+            debouncedSaveNote();
+
+            if (isShared) {
+                saveCurrentNoteState().then(() => copyShareLink());
+            }
+        }
+
+        function copyShareLink() {
+            const id = document.getElementById('editor-note-id').value;
+            // 만약 임시 ID면 경고 처리 (클라우드 저장 대기)
+            if (id.startsWith('temp_')) {
+                alert('노트가 아직 클라우드에 생성되지 않았습니다. 잠시 후 다시 시도해주세요.');
+                return;
+            }
+            const link = `${window.location.origin}${window.location.pathname}?share_id=${id}`;
+            navigator.clipboard.writeText(link).then(() => {
+                alert(`공유 링크가 복사되었습니다!\n${link}`);
+            }).catch(err => {
+                prompt("아래 링크를 복사하세요:", link);
+            });
+        }
+
+        function debouncedSaveNote() {
+            if (noteSyncTimeout) clearTimeout(noteSyncTimeout);
+            document.getElementById('sync-icon-notes').classList.remove('hidden');
+            noteSyncTimeout = setTimeout(() => {
+                saveCurrentNoteState();
+            }, 1000);
+        }
+
+        async function saveCurrentNoteState(manualSave = false) {
+            const id = document.getElementById('editor-note-id').value;
+            const title = document.getElementById('editor-note-title').value;
+            const content = document.getElementById('editor-note-content').value;
+            const is_shared = document.getElementById('note-share-toggle').checked ? 1 : 0;
+
+            const noteIndex = notes.findIndex(n => n.id === id);
+            if (noteIndex === -1) return;
+
+            notes[noteIndex].title = title;
+            notes[noteIndex].content = content;
+            notes[noteIndex].is_shared = is_shared;
+            notes[noteIndex].updated_at = new Date().toISOString();
+
+            const notePayload = { ...notes[noteIndex] };
+
+            const res = await fetchWithAuth('/api/notes', {
+                method: 'POST',
+                body: JSON.stringify(notePayload)
+            });
+
+            if (res && res.success && res.id) {
+                if (id.startsWith('temp_')) {
+                    notes[noteIndex].id = res.id;
+                    document.getElementById('editor-note-id').value = res.id;
+                }
+                if (manualSave) alert("메모가 성공적으로 저장되었습니다!");
+            } else {
+                const errorMsg = (res && res.error) ? res.error : "서버 응답 오류 (DB 연결 확인 필요)";
+                if (manualSave) alert(`저장 실패: ${errorMsg}`);
+            }
+            document.getElementById('sync-icon-notes').classList.add('hidden');
+        }
+
+        async function deleteNote(id) {
+            if (confirm('이 메모를 영구 삭제하시겠습니까?')) {
+                notes = notes.filter(n => n.id !== id);
+                renderNotesList(); // UI 즉시 반영
+
+                if (!id.startsWith('temp_')) {
+                    await fetchWithAuth(`/api/notes?id=${id}`, { method: 'DELETE' });
+                }
+            }
+        }
+
+        // --- 2.8 외부 공유 뷰 렌더러 ---
+        async function renderSharedView(shareId) {
+            // ... (original renderSharedView content)
+            document.getElementById('view-login').style.display = 'none';
+            document.getElementById('view-main').style.display = 'none';
+            const vShared = document.getElementById('view-shared');
+            vShared.classList.remove('hidden');
+            vShared.classList.add('flex');
+
+            try {
+                const response = await fetch(`/api/shared?id=${shareId}`);
+                const data = await response.json();
+
+                if (!response.ok) throw new Error(data.error);
+
+                document.getElementById('shared-note-title').innerText = data.title || '제목 없는 노트';
+                document.getElementById('shared-note-content').innerText = data.content || '';
+
+                const authorName = data.nickname || (data.email ? data.email.split('@')[0] : '작성자');
+                document.getElementById('shared-note-author').innerText = authorName;
+
+                const dateObj = new Date(data.updated_at);
+                document.getElementById('shared-note-date').innerText = `${dateObj.getFullYear()}.${dateObj.getMonth() + 1}.${dateObj.getDate()}`;
+
+            } catch (err) {
+                document.getElementById('shared-note-title').innerText = '접근할 수 없는 노트입니다.';
+                document.getElementById('shared-note-content').innerHTML = `
+                    <div class="text-red-500 font-bold mb-2">오류: ${err.message}</div>
+                    <p class="text-sm">작성자가 공유를 해제했거나 삭제된 노트일 수 있습니다.</p>
+                `;
+            }
+        }
+
+        // --- 4. 광고 매물 (Ads) 로직 ---
+        function showAdCategoryModal() {
+            document.getElementById('ad-category-modal').classList.remove('hidden');
+        }
+
+        function hideAdCategoryModal() {
+            document.getElementById('ad-category-modal').classList.add('hidden');
+        }
+
+        async function loadAdsFromCloud() {
+            document.getElementById('loadingIndicatorAds').classList.remove('hidden');
+            document.getElementById('ads-list').innerHTML = '';
+            document.getElementById('ads-empty').classList.add('hidden');
+
+            const data = await fetchWithAuth('/api/ads');
+            document.getElementById('loadingIndicatorAds').classList.add('hidden');
+
+            if (data && Array.isArray(data)) {
+                ads = data.map(item => ({
+                    ...item,
+                    data: typeof item.data === 'string' ? JSON.parse(item.data) : (item.data || {})
+                }));
+            } else {
+                ads = [];
+            }
+            renderAdsList();
+        }
+
+        function openNaverMap() {
+            const addr = document.getElementById('ad-field-address').value;
+            if (!addr) { alert('소재지를 입력해주세요.'); return; }
+            window.open(`https://map.naver.com/v5/search/${encodeURIComponent(addr)}`, '_blank');
+        }
+
+        function openKakaoMap() {
+            const addr = document.getElementById('ad-field-address').value;
+            if (!addr) { alert('소재지를 입력해주세요.'); return; }
+            window.open(`https://map.kakao.com/?q=${encodeURIComponent(addr)}`, '_blank');
+        }
+
+        function setAdCategoryFilter(category) {
+            currentAdCategoryFilter = category;
+            const select = document.getElementById('ad-category-filter');
+            if (select && select.value !== category) {
+                select.value = category;
+            }
+            renderAdsList();
+        }
+
+        function setAdStatusTab(status) {
+            isAdCompletedTab = (status === 'completed');
+            
+            const btnActive = document.getElementById('ad-tab-active');
+            const btnCompleted = document.getElementById('ad-tab-completed');
+            
+            if (isAdCompletedTab) {
+                btnCompleted.className = "flex-1 py-1.5 text-sm font-bold bg-white rounded-lg shadow-sm text-gray-800 transition-all";
+                btnActive.className = "flex-1 py-1.5 text-sm font-bold text-gray-500 rounded-lg transition-all hover:bg-gray-100";
+            } else {
+                btnActive.className = "flex-1 py-1.5 text-sm font-bold bg-white rounded-lg shadow-sm text-gray-800 transition-all";
+                btnCompleted.className = "flex-1 py-1.5 text-sm font-bold text-gray-500 rounded-lg transition-all hover:bg-gray-100";
+            }
+            renderAdsList();
+        }
+
+        
+
+        function renderAdsList() {
+            const list = document.getElementById('ads-list');
+            const empty = document.getElementById('ads-empty');
+            const indicator = document.getElementById('loadingIndicatorAds');
+            const searchNo = document.getElementById('ad-search-no').value.trim();
+            const usageFilter = document.getElementById('ad-usage-filter') ? document.getElementById('ad-usage-filter').value : '';
+            const sortType = document.getElementById('ad-sort-type') ? document.getElementById('ad-sort-type').value : 'no_asc';
+
+            if (!indicator.classList.contains('hidden')) return;
+
+            // 1. Filter
+            let filteredAds = ads.filter(a => {
+                const isCompleted = a.data && a.data.status === 'completed';
+                if (isAdCompletedTab && !isCompleted) return false;
+                if (!isAdCompletedTab && isCompleted) return false;
+
+                const matchesCategory = currentAdCategoryFilter === '전체' || a.category === currentAdCategoryFilter;
+                const matchesSearch = !searchNo || (a.data && (
+                    (a.data.ad_no && a.data.ad_no.includes(searchNo)) ||
+                    (a.data.address && a.data.address.includes(searchNo)) ||
+                    (a.data.biz_name && a.data.biz_name.includes(searchNo))
+                ));
+                const matchesUsage = !usageFilter || (a.data && a.data.usage_type === usageFilter);
+                return matchesCategory && matchesSearch && matchesUsage;
+            });
+
+            // 2. Sort
+            filteredAds.sort((a, b) => {
+                if (sortType === 'latest' || sortType === 'oldest') {
+                    const timeA = a.created_at || a.id;
+                    const timeB = b.created_at || b.id;
+                    const compare = timeB.localeCompare(timeA); // Descending by default
+                    return sortType === 'latest' ? compare : -compare;
+                } else if (sortType === 'no_asc' || sortType === 'no_desc') {
+                    const noA = (a.data && a.data.ad_no) || '';
+                    const noB = (b.data && b.data.ad_no) || '';
+                    const compare = noA.localeCompare(noB, undefined, { numeric: true, sensitivity: 'base' });
+                    return sortType === 'no_desc' ? -compare : compare;
+                }
+                return 0;
+            });
+
+            if (!filteredAds || filteredAds.length === 0) {
+                list.innerHTML = '';
+                empty.classList.remove('hidden');
+                return;
+            }
+            empty.classList.add('hidden');
+
+            if (true) {
+                list.className = 'block';
+                list.innerHTML = `
+                <div class="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-100">
+                    ${filteredAds.map(a => {
+                        const d = a.data || {};
+                        let priceStr = d.sale_price || d.jeonse_price || d.rent || '-';
+                        if (d.usage_type === '월세' || d.usage_type === '년세') priceStr = (d.deposit ? d.deposit + '/' : '') + (d.rent || '-');
+                        else if (d.usage_type === '전세') priceStr = d.jeonse_price || d.deposit || '-';
+                        else if (d.usage_type === '매매') priceStr = d.sale_price || '-';
+                        else priceStr = (d.deposit ? d.deposit + '/' : '') + priceStr;
+                        
+                        return `
+                        <div class="p-3 hover:bg-orange-50 cursor-pointer transition-colors" onclick="openAdEditor('${a.id}')">
+                            <div class="flex justify-between items-center mb-1.5">
+                                <div class="flex items-center gap-2 overflow-hidden">
+                                    <span class="text-[10px] font-bold text-gray-500 bg-gray-50 border border-gray-200 px-1.5 py-0.5 rounded shrink-0">No.${d.ad_no || '-'}</span>
+                                    <span class="text-[11px] font-bold text-orange-600 shrink-0">${a.category.length > 5 ? a.category.substring(0,5)+'..' : a.category}</span>
+                                    <span class="text-[13px] font-bold text-gray-800 truncate">${d.address || '-'} ${d.room_no || ''}</span>
+                                </div>
+                                <div class="flex gap-1 shrink-0 ml-2">
+                                    ${isAdCompletedTab 
+                                        ? `<button onclick="event.stopPropagation(); restoreAdStatus('${a.id}')" class="text-blue-500 hover:text-blue-700 font-bold bg-blue-50 border border-blue-100 rounded px-1.5 py-0.5 text-[10px]">재등록</button>`
+                                        : `<button onclick="event.stopPropagation(); completeAdStatus('${a.id}')" class="text-green-600 hover:text-green-800 font-bold bg-green-50 border border-green-100 rounded px-1.5 py-0.5 text-[10px]">완료</button>`}
+                                    <button onclick="event.stopPropagation(); deleteAd('${a.id}')" class="text-red-400 hover:text-red-600 font-bold bg-red-50 border border-red-100 rounded px-1.5 py-0.5 text-[10px]">삭제</button>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-2 text-[12px] pl-[2px]">
+                                <span class="font-bold text-blue-600 shrink-0">${d.usage_type || '-'}</span>
+                                <span class="text-gray-300">|</span>
+                                <span class="text-gray-700 font-bold shrink-0">${priceStr}</span>
+                                <span class="text-gray-300">|</span>
+                                <span class="text-gray-500 truncate">${d.biz_name || '-'}</span>
+                            </div>
+                        </div>
+                        `;
+                    }).join('')}
+                </div>
+                `;
+            } else {
+                list.className = 'space-y-3 block';
+                list.innerHTML = filteredAds.map(a => {
+                    const d = a.data || {};
+                    let priceStr = d.sale_price || d.jeonse_price || d.rent || '-';
+                    if (d.usage_type === '월세' || d.usage_type === '년세') priceStr = (d.deposit ? d.deposit + '/' : '') + (d.rent || '-');
+                    else if (d.usage_type === '전세') priceStr = d.jeonse_price || d.deposit || '-';
+                    else if (d.usage_type === '매매') priceStr = d.sale_price || '-';
+                    else priceStr = (d.deposit ? d.deposit + '/' : '') + priceStr;
+                    
+                    return `
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-100 p-4 cursor-pointer hover:border-orange-300 transition-colors active:scale-[0.98]" onclick="openAdEditor('${a.id}')">
+                        <div class="flex justify-between items-start mb-2">
+                            <div class="flex gap-1 items-center">
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-100 text-orange-700">${a.category}</span>
+                                <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-gray-100 text-gray-600">No.${d.ad_no || '-'}</span>
+                            </div>
+                            <div class="flex gap-1 shrink-0 ml-2">
+                                ${isAdCompletedTab 
+                                    ? `<button onclick="event.stopPropagation(); restoreAdStatus('${a.id}')" class="text-blue-500 hover:text-blue-700 text-xs font-bold px-2 py-1 bg-blue-50 border border-blue-100 rounded">재등록</button>`
+                                    : `<button onclick="event.stopPropagation(); completeAdStatus('${a.id}')" class="text-green-600 hover:text-green-800 text-xs font-bold px-2 py-1 bg-green-50 border border-green-100 rounded">완료</button>`}
+                                <button onclick="event.stopPropagation(); deleteAd('${a.id}')" class="text-red-400 hover:text-red-600 text-xs font-bold px-2 py-1 bg-red-50 border border-red-100 rounded">삭제</button>
+                            </div>
+                        </div>
+                        <h3 class="font-bold text-gray-800 mb-1">${d.address || '소재지 미입력'} ${d.room_no || ''}</h3>
+                        <div class="flex items-center gap-2 text-xs text-gray-500">
+                            <span class="font-bold text-blue-600">${d.usage_type || ''}</span>
+                            <span>|</span>
+                            <span>${priceStr}</span>
+                            <span>|</span>
+                            <span>${d.biz_name || ''}</span>
+                        </div>
+                    </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        async function addAd(category) {
+            hideAdCategoryModal();
+            const tempId = 'temp_' + Date.now();
+            const newAd = {
+                id: tempId,
+                category: category,
+                data: {},
+                email: currentUserEmail
+            };
+            ads.unshift(newAd);
+            renderAdsList();
+            openAdEditor(tempId);
+        }
+
+        function openAdEditor(id) {
+            const ad = ads.find(a => a.id === id);
+            if (!ad) return;
+
+            document.getElementById('ads-list-view').classList.add('hidden');
+            document.getElementById('ads-editor-view').classList.remove('hidden');
+            document.getElementById('ad-editor-title').innerText = ad.category;
+
+            const content = document.getElementById('ad-editor-content');
+            content.innerHTML = `
+                <div id="ad-dup-warning" class="hidden bg-red-50 border border-red-200 text-red-600 p-3 mb-4 text-xs font-bold rounded-lg shadow-sm">
+                    <!-- 중복 경고 메시지가 이곳에 나타납니다 -->
+                </div>
+                <input type="hidden" id="editor-ad-id" value="${ad.id}">
+                <input type="hidden" id="editor-ad-category" value="${ad.category}">
+                ${generateAdForm(ad.category, ad.data)}
+            `;
+
+            // 매물번호 및 주소/동호수 중복 검사 이벤트 연결
+            const dupFields = ['ad-field-ad_no_num', 'ad-field-address', 'ad-field-room_no'];
+            dupFields.forEach(fieldId => {
+                const el = document.getElementById(fieldId);
+                if (el) el.addEventListener('input', checkAdDuplication);
+            });
+            
+            const elAdNoNum = document.getElementById('ad-field-ad_no_num');
+            if (elAdNoNum) {
+                elAdNoNum.addEventListener('focus', () => updateAdNoSuggestion(ad.category));
+                elAdNoNum.addEventListener('input', () => updateAdNoSuggestion(ad.category));
+            }
+
+            checkAdDuplication(); // 초기 로드 시에도 검사
+        }
+
+        function checkAdDuplication() {
+            const warningBox = document.getElementById('ad-dup-warning');
+            if (!warningBox) return;
+
+            const currentId = document.getElementById('editor-ad-id').value;
+            const elAdNo = document.getElementById('ad-field-ad_no_num');
+            const elAddress = document.getElementById('ad-field-address');
+            const elRoomNo = document.getElementById('ad-field-room_no');
+
+            const adNoNum = elAdNo ? elAdNo.value.trim() : '';
+            const adNo = adNoNum ? 'JW-' + adNoNum : '';
+            const address = elAddress ? elAddress.value.trim() : '';
+            const roomNo = elRoomNo ? elRoomNo.value.trim() : '';
+
+            // 매물번호 중복 확인 (완료된 매물은 제외)
+            const adNoDup = adNo ? ads.find(a => a.id !== currentId && a.data && a.data.status !== 'completed' && a.data.ad_no === adNo) : null;
+            
+            // 소재지+동호수 중복 확인 (완료된 매물 제외)
+            const addrDup = address ? ads.find(a => a.id !== currentId && a.data && a.data.status !== 'completed' && a.data.address === address && (a.data.room_no || '') === roomNo) : null;
+
+            if (adNoDup && addrDup && adNoDup.id === addrDup.id) {
+                warningBox.innerHTML = `⚠️ <b>경고:</b> 이미 동일한 매물이 존재합니다! (매물번호: ${adNoDup.data.ad_no})`;
+                warningBox.classList.remove('hidden');
+            } else if (adNoDup) {
+                warningBox.innerHTML = `⚠️ <b>경고:</b> 이미 사용 중인 매물번호입니다! (매물번호: ${adNoDup.data.ad_no})`;
+                warningBox.classList.remove('hidden');
+            } else if (addrDup) {
+                warningBox.innerHTML = `⚠️ <b>경고:</b> 동일한 소재지와 동호수를 가진 매물이 있습니다! (매물번호: ${addrDup.data.ad_no || '번호없음'})`;
+                warningBox.classList.remove('hidden');
+            } else {
+                warningBox.classList.add('hidden');
+            }
+        }
+
+        
+        function getAdNoBounds(category) {
+            if (category === '원.투.쓰리룸&공동주택') return [1, 199];
+            if (category === '상가/사무실') return [200, 399];
+            if (category === '주택&건물 통매매') return [400, 599];
+            if (category === '토지') return [600, 799];
+            if (category === '기타') return [800, 999];
+            return [1, 999];
+        }
+
+        function updateAdNoSuggestion(category) {
+            const elAdNo = document.getElementById('ad-field-ad_no_num');
+            const suggestionBox = document.getElementById('ad-no-suggestion');
+            if (!elAdNo || !suggestionBox) return;
+
+            const bounds = getAdNoBounds(category);
+            const inputVal = elAdNo.value.trim();
+            const currentId = document.getElementById('editor-ad-id').value;
+
+            // 이미 사용중인 번호들 추출 (현재 광고 제외, 완료되지 않은 매물)
+            const usedNumbers = new Set();
+            ads.forEach(a => {
+                if (a.id !== currentId && a.data && a.data.status !== 'completed' && a.data.ad_no) {
+                    const numPart = a.data.ad_no.replace('JW-', '');
+                    const n = parseInt(numPart, 10);
+                    if (!isNaN(n)) usedNumbers.add(n);
+                }
+            });
+
+            // 입력값 검증 (범위 이탈 시 경고)
+            if (inputVal !== '') {
+                const num = parseInt(inputVal, 10);
+                if (num < bounds[0] || num > bounds[1]) {
+                    suggestionBox.innerHTML = `<span class="text-red-500">⚠️ 해당 카테고리의 지정 대역은 ${bounds[0]} ~ ${bounds[1]} 입니다.</span>`;
+                    return;
+                }
+            }
+
+            // 남은 번호 계산
+            const available = [];
+            for (let i = bounds[0]; i <= bounds[1]; i++) {
+                if (!usedNumbers.has(i)) {
+                    if (inputVal === '' || String(i).startsWith(inputVal)) {
+                        available.push(i);
+                    }
+                }
+                if (available.length >= 5) break; // 최대 5개까지만
+            }
+
+            if (available.length > 0) {
+                suggestionBox.innerHTML = `💡 추천 번호: ${available.join(', ')}`;
+            } else {
+                suggestionBox.innerHTML = `<span class="text-red-500">⚠️ 사용 가능한 번호가 없습니다.</span>`;
+            }
+        }
+
+        function generateAdForm(category, data) {
+            if (category === '원.투.쓰리룸&공동주택') {
+                return `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">매물 번호</label>
+                                <div class="flex items-center w-full border border-gray-200 rounded-lg overflow-hidden focus-within:border-orange-500 bg-white">
+                                    <span class="bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">JW-</span>
+                                    <input type="number" id="ad-field-ad_no_num" value="${(data.ad_no || '').replace('JW-', '')}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
+                                </div>
+                                <div id="ad-no-suggestion" class="text-[11px] text-blue-600 font-bold mt-1 empty:hidden"></div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">상호명</label>
+                                <input type="text" id="ad-field-biz_name" value="${data.biz_name || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">종류</label>
+                                <input type="text" id="ad-field-type" value="${data.type || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 빌라, 아파트">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">유형</label>
+                                <select id="ad-field-usage_type" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 bg-white">
+                                    <option value="월세" ${data.usage_type === '월세' ? 'selected' : ''}>월세</option>
+                                    <option value="년세" ${data.usage_type === '년세' ? 'selected' : ''}>년세</option>
+                                    <option value="전세" ${data.usage_type === '전세' ? 'selected' : ''}>전세</option>
+                                    <option value="매매" ${data.usage_type === '매매' ? 'selected' : ''}>매매</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-xs font-bold text-gray-500">소재지</label>
+                                <div class="flex gap-1">
+                                    <button onclick="openNaverMap()" class="text-[10px] bg-[#03C75A] text-white px-2 py-0.5 rounded font-bold shadow-sm">네이버</button>
+                                    <button onclick="openKakaoMap()" class="text-[10px] bg-[#FEE500] text-[#191919] px-2 py-0.5 rounded font-bold shadow-sm">카카오</button>
+                                </div>
+                            </div>
+                            <input type="text" id="ad-field-address" value="${data.address || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">동호수</label>
+                                <input type="text" id="ad-field-room_no" value="${data.room_no || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">건축물용도</label>
+                                <input type="text" id="ad-field-usage_building" value="${data.usage_building || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">대지면적</label>
+                                <input type="text" id="ad-field-land_area" value="${data.land_area || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">전용면적</label>
+                                <input type="text" id="ad-field-area" value="${data.area || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">입금가</label>
+                                <input type="text" id="ad-field-cost_price" value="${data.cost_price || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">매매가</label>
+                                <input type="text" id="ad-field-sale_price" value="${data.sale_price || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">전세가</label>
+                                <input type="text" id="ad-field-jeonse_price" value="${data.jeonse_price || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">보증금</label>
+                                <input type="text" id="ad-field-deposit" value="${data.deposit || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">년/월세</label>
+                                <input type="text" id="ad-field-rent" value="${data.rent || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">관리비</label>
+                                <input type="text" id="ad-field-maintenance" value="${data.maintenance || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">1층 현관 비번</label>
+                                <input type="text" id="ad-field-common_pwd" value="${data.common_pwd || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">세대 비번</label>
+                                <input type="text" id="ad-field-unit_pwd" value="${data.unit_pwd || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">구조</label>
+                                <input type="text" id="ad-field-structure" value="${data.structure || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 분리형 원룸">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">방향</label>
+                                <input type="text" id="ad-field-direction" value="${data.direction || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 남향">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">담당자</label>
+                                <input type="text" id="ad-field-agent" value="${data.agent || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">주차가능여부</label>
+                                <input type="text" id="ad-field-parking" value="${data.parking || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 가능, 불가">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">옵션</label>
+                            <input type="text" id="ad-field-options" value="${data.options || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 풀옵션, TV, 세탁기">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">난방연료</label>
+                                <input type="text" id="ad-field-heating" value="${data.heating || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">입주정보</label>
+                                <input type="text" id="ad-field-move_in_info" value="${data.move_in_info || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">특이사항</label>
+                            <textarea id="ad-field-notes" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 resize-none h-24">${data.notes || ''}</textarea>
+                        </div>
+                    </div>
+                `;
+            } else if (category === '상가') {
+                return `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">매물 번호</label>
+                                <div class="flex items-center w-full border border-gray-200 rounded-lg overflow-hidden focus-within:border-orange-500 bg-white">
+                                    <span class="bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">JW-</span>
+                                    <input type="number" id="ad-field-ad_no_num" value="${(data.ad_no || '').replace('JW-', '')}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
+                                </div>
+                                <div id="ad-no-suggestion" class="text-[11px] text-blue-600 font-bold mt-1 empty:hidden"></div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">상호명</label>
+                                <input type="text" id="ad-field-biz_name" value="${data.biz_name || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-xs font-bold text-gray-500">소재지</label>
+                                <div class="flex gap-1">
+                                    <button onclick="openNaverMap()" class="text-[10px] bg-[#03C75A] text-white px-2 py-0.5 rounded font-bold shadow-sm">네이버</button>
+                                    <button onclick="openKakaoMap()" class="text-[10px] bg-[#FEE500] text-[#191919] px-2 py-0.5 rounded font-bold shadow-sm">카카오</button>
+                                </div>
+                            </div>
+                            <input type="text" id="ad-field-address" value="${data.address || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">유형</label>
+                                <select id="ad-field-usage_type" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 bg-white">
+                                    <option value="월세" ${data.usage_type === '월세' ? 'selected' : ''}>월세</option>
+                                    <option value="년세" ${data.usage_type === '년세' ? 'selected' : ''}>년세</option>
+                                    <option value="전세" ${data.usage_type === '전세' ? 'selected' : ''}>전세</option>
+                                    <option value="매매" ${data.usage_type === '매매' ? 'selected' : ''}>매매</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">건축물용도</label>
+                                <input type="text" id="ad-field-usage_building" value="${data.usage_building || data.purpose || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">대지면적</label>
+                                <input type="text" id="ad-field-land_area" value="${data.land_area || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">평수</label>
+                                <input type="text" id="ad-field-area" value="${data.area || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">보증금</label>
+                                <input type="text" id="ad-field-deposit" value="${data.deposit || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">년/월세</label>
+                                <input type="text" id="ad-field-rent" value="${data.rent || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">매매가</label>
+                                <input type="text" id="ad-field-sale_price" value="${data.sale_price || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">권리금</label>
+                                <input type="text" id="ad-field-premium" value="${data.premium || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">방향</label>
+                                <input type="text" id="ad-field-direction" value="${data.direction || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">구조</label>
+                                <input type="text" id="ad-field-structure" value="${data.structure || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">입주정보</label>
+                                <input type="text" id="ad-field-move_in_info" value="${data.move_in_info || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">담당자</label>
+                                <input type="text" id="ad-field-agent" value="${data.agent || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">특이사항</label>
+                            <textarea id="ad-field-notes" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 resize-none h-24">${data.notes || ''}</textarea>
+                        </div>
+                    </div>
+                `;
+            } else if (category === '주택&건물 통매매') {
+                return `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">매물 번호</label>
+                                <div class="flex items-center w-full border border-gray-200 rounded-lg overflow-hidden focus-within:border-orange-500 bg-white">
+                                    <span class="bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">JW-</span>
+                                    <input type="number" id="ad-field-ad_no_num" value="${(data.ad_no || '').replace('JW-', '')}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
+                                </div>
+                                <div id="ad-no-suggestion" class="text-[11px] text-blue-600 font-bold mt-1 empty:hidden"></div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">상호명</label>
+                                <input type="text" id="ad-field-biz_name" value="${data.biz_name || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">종류</label>
+                                <input type="text" id="ad-field-type" value="${data.type || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 단독주택, 빌딩">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">유형</label>
+                                <select id="ad-field-usage_type" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 bg-white">
+                                    <option value="월세" ${data.usage_type === '월세' ? 'selected' : ''}>월세</option>
+                                    <option value="년세" ${data.usage_type === '년세' ? 'selected' : ''}>년세</option>
+                                    <option value="전세" ${data.usage_type === '전세' ? 'selected' : ''}>전세</option>
+                                    <option value="매매" ${data.usage_type === '매매' ? 'selected' : ''}>매매</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-xs font-bold text-gray-500">소재지</label>
+                                <div class="flex gap-1">
+                                    <button onclick="openNaverMap()" class="text-[10px] bg-[#03C75A] text-white px-2 py-0.5 rounded font-bold shadow-sm">네이버</button>
+                                    <button onclick="openKakaoMap()" class="text-[10px] bg-[#FEE500] text-[#191919] px-2 py-0.5 rounded font-bold shadow-sm">카카오</button>
+                                </div>
+                            </div>
+                            <input type="text" id="ad-field-address" value="${data.address || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">동호수</label>
+                                <input type="text" id="ad-field-room_no" value="${data.room_no || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">가구수</label>
+                                <input type="text" id="ad-field-household_count" value="${data.household_count || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">대지면적</label>
+                                <input type="text" id="ad-field-land_area" value="${data.land_area || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">연면적</label>
+                                <input type="text" id="ad-field-total_floor_area" value="${data.total_floor_area || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">매매가</label>
+                                <input type="text" id="ad-field-sale_price" value="${data.sale_price || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">보증금</label>
+                                <input type="text" id="ad-field-deposit" value="${data.deposit || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">년/월세</label>
+                                <input type="text" id="ad-field-rent" value="${data.rent || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">관리비</label>
+                                <input type="text" id="ad-field-maintenance" value="${data.maintenance || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">현관 비번</label>
+                                <input type="text" id="ad-field-common_pwd" value="${data.common_pwd || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">담당자</label>
+                                <input type="text" id="ad-field-agent" value="${data.agent || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">특이사항</label>
+                            <textarea id="ad-field-notes" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 resize-none h-24">${data.notes || ''}</textarea>
+                        </div>
+                    </div>
+                `;
+            } else if (category === '토지') {
+                return `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">매물 번호</label>
+                                <div class="flex items-center w-full border border-gray-200 rounded-lg overflow-hidden focus-within:border-orange-500 bg-white">
+                                    <span class="bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">JW-</span>
+                                    <input type="number" id="ad-field-ad_no_num" value="${(data.ad_no || '').replace('JW-', '')}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
+                                </div>
+                                <div id="ad-no-suggestion" class="text-[11px] text-blue-600 font-bold mt-1 empty:hidden"></div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">소유주</label>
+                                <input type="text" id="ad-field-owner" value="${data.owner || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">유형</label>
+                                <select id="ad-field-usage_type" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 bg-white">
+                                    <option value="월세" ${data.usage_type === '월세' ? 'selected' : ''}>월세</option>
+                                    <option value="년세" ${data.usage_type === '년세' ? 'selected' : ''}>년세</option>
+                                    <option value="전세" ${data.usage_type === '전세' ? 'selected' : ''}>전세</option>
+                                    <option value="매매" ${data.usage_type === '매매' ? 'selected' : ''}>매매</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">평수</label>
+                                <input type="text" id="ad-field-area" value="${data.area || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-xs font-bold text-gray-500">소재지</label>
+                                <div class="flex gap-1">
+                                    <button onclick="openNaverMap()" class="text-[10px] bg-[#03C75A] text-white px-2 py-0.5 rounded font-bold shadow-sm">네이버</button>
+                                    <button onclick="openKakaoMap()" class="text-[10px] bg-[#FEE500] text-[#191919] px-2 py-0.5 rounded font-bold shadow-sm">카카오</button>
+                                </div>
+                            </div>
+                            <input type="text" id="ad-field-address" value="${data.address || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">매매가</label>
+                                <input type="text" id="ad-field-sale_price" value="${data.sale_price || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">광고금액</label>
+                                <input type="text" id="ad-field-ad_price" value="${data.ad_price || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">평단가</label>
+                                <input type="text" id="ad-field-unit_price" value="${data.unit_price || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">보증금</label>
+                                <input type="text" id="ad-field-deposit" value="${data.deposit || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">임대료</label>
+                                <input type="text" id="ad-field-rent" value="${data.rent || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">지목</label>
+                                <input type="text" id="ad-field-land_type" value="${data.land_type || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">용도지역</label>
+                                <input type="text" id="ad-field-zoning" value="${data.zoning || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">담당자</label>
+                                <input type="text" id="ad-field-agent" value="${data.agent || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">특이사항</label>
+                            <textarea id="ad-field-notes" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 resize-none h-24">${data.notes || ''}</textarea>
+                        </div>
+                    </div>
+                `;
+            } else if (category === '기타') {
+                return `
+                    <div class="space-y-4">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">매물 번호</label>
+                                <div class="flex items-center w-full border border-gray-200 rounded-lg overflow-hidden focus-within:border-orange-500 bg-white">
+                                    <span class="bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">JW-</span>
+                                    <input type="number" id="ad-field-ad_no_num" value="${(data.ad_no || '').replace('JW-', '')}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
+                                </div>
+                                <div id="ad-no-suggestion" class="text-[11px] text-blue-600 font-bold mt-1 empty:hidden"></div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">상호명</label>
+                                <input type="text" id="ad-field-biz_name" value="${data.biz_name || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">종류</label>
+                                <input type="text" id="ad-field-type" value="${data.type || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">유형</label>
+                                <select id="ad-field-usage_type" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 bg-white">
+                                    <option value="월세" ${data.usage_type === '월세' ? 'selected' : ''}>월세</option>
+                                    <option value="년세" ${data.usage_type === '년세' ? 'selected' : ''}>년세</option>
+                                    <option value="전세" ${data.usage_type === '전세' ? 'selected' : ''}>전세</option>
+                                    <option value="매매" ${data.usage_type === '매매' ? 'selected' : ''}>매매</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="text-xs font-bold text-gray-500">소재지</label>
+                                <div class="flex gap-1">
+                                    <button onclick="openNaverMap()" class="text-[10px] bg-[#03C75A] text-white px-2 py-0.5 rounded font-bold shadow-sm">네이버</button>
+                                    <button onclick="openKakaoMap()" class="text-[10px] bg-[#FEE500] text-[#191919] px-2 py-0.5 rounded font-bold shadow-sm">카카오</button>
+                                </div>
+                            </div>
+                            <input type="text" id="ad-field-address" value="${data.address || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">동호수</label>
+                                <input type="text" id="ad-field-room_no" value="${data.room_no || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">평수</label>
+                                <input type="text" id="ad-field-area" value="${data.area || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">입금가</label>
+                                <input type="text" id="ad-field-cost_price" value="${data.cost_price || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">매매가</label>
+                                <input type="text" id="ad-field-sale_price" value="${data.sale_price || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">전세</label>
+                                <input type="text" id="ad-field-jeonse_price" value="${data.jeonse_price || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">보증금</label>
+                                <input type="text" id="ad-field-deposit" value="${data.deposit || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">년/월세</label>
+                                <input type="text" id="ad-field-rent" value="${data.rent || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">관리비</label>
+                                <input type="text" id="ad-field-maintenance" value="${data.maintenance || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">권리금</label>
+                                <input type="text" id="ad-field-premium" value="${data.premium || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">담당자</label>
+                                <input type="text" id="ad-field-agent" value="${data.agent || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">구조</label>
+                            <input type="text" id="ad-field-structure" value="${data.structure || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">특이사항</label>
+                            <textarea id="ad-field-notes" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 resize-none h-24">${data.notes || ''}</textarea>
+                        </div>
+                    </div>
+                `;
+            }
+            return '<p class="text-center py-10 text-gray-400">지원되지 않는 카테고리입니다.</p>';
+        }
+
+        async function saveCurrentAd(manualSave = false) {
+            const id = document.getElementById('editor-ad-id').value;
+            const category = document.getElementById('editor-ad-category').value;
+            if (!id) return;
+
+            const adIndex = ads.findIndex(a => a.id === id);
+            if (adIndex === -1) return;
+
+            const dynamicData = { ...(ads[adIndex].data || {}) };
+            const inputs = document.querySelectorAll('[id^="ad-field-"]');
+            inputs.forEach(input => {
+                let key = input.id.replace('ad-field-', '');
+                if (key === 'ad_no_num') {
+                    key = 'ad_no';
+                    dynamicData[key] = input.value ? 'JW-' + input.value : '';
+                } else {
+                    dynamicData[key] = input.value;
+                }
+            });
+
+            const updatedAd = {
+                ...ads[adIndex],
+                category: category,
+                data: dynamicData,
+                email: currentUserEmail
+            };
+
+            const res = await fetchWithAuth('/api/ads', {
+                method: 'POST',
+                body: JSON.stringify(updatedAd)
+            });
+
+            if (res && res.success) {
+                // 로컬 데이터 업데이트
+                ads[adIndex] = {
+                    ...updatedAd,
+                    id: res.id,
+                    updated_at: new Date().toISOString()
+                };
+                
+                if (manualSave) {
+                    alert("성공적으로 저장되었습니다!");
+                    closeAdEditor();
+                }
+            } else {
+                const errorMsg = (res && res.error) ? res.error : "서버 응답 오류 (DB 연결 확인 필요)";
+                if (manualSave) alert(`저장 실패: ${errorMsg}`);
+            }
+        }
+
+        function closeAdEditor() {
+            document.getElementById('ads-editor-view').classList.add('hidden');
+            document.getElementById('ads-list-view').classList.remove('hidden');
+            renderAdsList();
+        }
+
+        async function deleteAd(id) {
+            if (confirm('이 매물을 영구 삭제하시겠습니까?')) {
+                ads = ads.filter(a => a.id !== id);
+                renderAdsList();
+
+                if (!id.startsWith('temp_')) {
+                    await fetchWithAuth(`/api/ads?id=${id}`, { method: 'DELETE' });
+                }
+            }
+        }
+
+        async function completeAdStatus(id) {
+            if (!confirm('해당 매물을 계약완료 처리하시겠습니까? (매물번호가 초기화되고 완료 탭으로 이동합니다)')) return;
+            const adIndex = ads.findIndex(a => a.id === id);
+            if (adIndex === -1) return;
+            
+            const updatedAd = {
+                ...ads[adIndex],
+                data: {
+                    ...ads[adIndex].data,
+                    status: 'completed',
+                    ad_no: '' // 매물번호 초기화
+                },
+                email: currentUserEmail
+            };
+
+            const res = await fetchWithAuth('/api/ads', {
+                method: 'POST',
+                body: JSON.stringify(updatedAd)
+            });
+
+            if (res && res.success) {
+                ads[adIndex] = { ...updatedAd, updated_at: new Date().toISOString() };
+                renderAdsList();
+            } else {
+                alert('계약완료 처리에 실패했습니다.');
+            }
+        }
+
+        async function restoreAdStatus(id) {
+            if (!confirm('이 매물을 재등록하시겠습니까? (새로운 매물번호를 입력할 수 있도록 입력창이 열립니다)')) return;
+            const adIndex = ads.findIndex(a => a.id === id);
+            if (adIndex === -1) return;
+            
+            // 상태를 진행중으로 변경 (아직 DB 저장 안함)
+            ads[adIndex].data.status = 'active';
+            
+            // 뷰를 진행중 매물로 변경
+            setAdStatusTab('active');
+            
+            // 에디터 창 띄우기
+            openAdEditor(id);
+            
+            setTimeout(() => {
+                alert('재등록 모드로 전환되었습니다.\n새로운 매물 번호 등을 수정하신 후 우측 상단의 [저장] 버튼을 꼭 눌러주세요!');
+            }, 100);
+        }
+
+        function convertRentalToAd(id) {
+            const r = rentals.find(item => item.id === id);
+            if (!r) return;
+
+            // 1. 카테고리 매핑
+            let adCategory = '상가/사무실';
+            if (['원룸', '1.5룸', '투룸', '쓰리룸', '아파트', '빌라'].includes(r.type)) adCategory = '원.투.쓰리룸&공동주택';
+            else if (r.type === '토지') adCategory = '토지';
+            else if (['주택', '건물'].includes(r.type)) adCategory = '주택&건물 통매매';
+            else if (r.type === '기타') adCategory = '기타';
+
+            // 2. 가격 유형 매핑
+            let usageType = '월세';
+            if (r.yearly_rent) usageType = '년세';
+            else if (r.sale_price) usageType = '매매';
+            else if (r.deposit && !r.rent) usageType = '전세';
+
+            // 3. 임시 매물 생성
+            const tempId = 'temp_' + Date.now();
+            const newAd = {
+                id: tempId,
+                category: adCategory,
+                data: {
+                    address: r.address || '',
+                    room_no: r.room || '',
+                    deposit: r.deposit || '',
+                    rent: r.rent || (r.yearly_rent || ''),
+                    jeonse_price: (usageType === '전세') ? (r.deposit || '') : '',
+                    sale_price: r.sale_price || '',
+                    premium: r.premium || '',
+                    biz_name: r.business_name || '',
+                    options: r.options || '',
+                    structure: r.structure || '',
+                    notes: r.special_notes || '',
+                    usage_type: usageType,
+                    type: r.type || '',
+                    area: r.exclusive_area || r.supply_area || '',
+                    status: 'active'
+                },
+                email: currentUserEmail
+            };
+
+            // 4. 로컬 광고 목록에 추가
+            ads.unshift(newAd);
+            
+            // 5. 탭 이동 및 에디터 열기
+            isAdCompletedTab = false;
+            setAdStatusTab('active');
+            switchTab('ads');
+            openAdEditor(tempId);
+            
+            setTimeout(() => {
+                alert('중개의뢰서의 정보가 성공적으로 복사되었습니다.\n나머지 정보(매물번호 등)를 채워 넣고 우측 상단의 [저장] 버튼을 눌러 광고로 등록해 주세요.');
+            }, 300);
+        }
+        async function copyAdDetails() {
+            const inputs = document.querySelectorAll('[id^="ad-field-"]');
+            let textParts = [];
+            
+            inputs.forEach(input => {
+                const id = input.id;
+                let key = id.replace('ad-field-', '');
+                if (key === 'ad_no_num') key = 'ad_no';
+                
+                // 담당자, 소재지, 종류, 상호명 제외
+                const excludedKeys = ['agent', 'type', 'biz_name'];
+                if (excludedKeys.includes(key)) return;
+                
+                let value = input.value.trim();
+                if (key === 'ad_no' && value) value = 'JW-' + value;
+                if (!value) return;
+                
+                // 라벨 찾기
+                const parent = input.parentElement;
+                let labelText = '';
+                
+                // 일반적인 구조: parent > label
+                let label = parent.querySelector('label');
+                
+                // 만약 부모의 이전 형제가 라벨인 경우
+                if (!label) {
+                    const prev = parent.previousElementSibling;
+                    if (prev && prev.tagName === 'LABEL') label = prev;
+                }
+                
+                if (label) {
+                    labelText = label.innerText.replace(/\n/g, '').trim();
+                } else {
+                    labelText = key;
+                }
+                
+                textParts.push(`${labelText}: ${value}`);
+            });
+            
+            const finalContent = textParts.join('\n');
+            if (finalContent) {
+                try {
+                    await navigator.clipboard.writeText(finalContent);
+                    alert('입력된 내용이 복사되었습니다! (담당자, 종류, 상호명 제외)');
+                } catch (err) {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = finalContent;
+                    document.body.appendChild(textArea);
+                    textArea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    alert('입력된 내용이 복사되었습니다! (담당자, 종류, 상호명 제외)');
+                }
+            } else {
+                alert('복사할 내용이 없습니다.');
+            }
+        }
+        
+        // --- Trash Logic ---
+        async function loadTrashFromCloud() {
+            document.getElementById('loadingIndicatorTrash').classList.remove('hidden');
+            document.getElementById('trash-list').innerHTML = '';
+            document.getElementById('trash-empty').classList.add('hidden');
+            
+            const data = await fetchWithAuth('/api/trash');
+            document.getElementById('loadingIndicatorTrash').classList.add('hidden');
+            
+            if (data && Array.isArray(data) && data.length > 0) {
+                renderTrashList(data);
+            } else {
+                document.getElementById('trash-empty').classList.remove('hidden');
+            }
+        }
+        
+        function renderTrashList(trashItems) {
+            const list = document.getElementById('trash-list');
+            list.innerHTML = '';
+            
+            trashItems.forEach(item => {
+                const typeName = item.type === 'rental' ? '중개의뢰서' : item.type === 'note' ? '메모장' : '광고매물';
+                const dateStr = item.deleted_at ? new Date(item.deleted_at).toLocaleString() : '';
+                
+                const card = document.createElement('div');
+                card.className = 'bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-between items-center';
+                card.innerHTML = `
+                    <div class="flex-1 min-w-0 pr-4">
+                        <div class="flex items-center gap-2 mb-1">
+                            <span class="text-[10px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">${typeName}</span>
+                            <span class="text-xs text-gray-400">${dateStr}</span>
+                        </div>
+                        <div class="font-bold text-gray-800 text-sm truncate">${item.title_hint || '제목 없음'}</div>
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="restoreTrashItem('${item.id}', '${item.type}')" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100">복구</button>
+                        <button onclick="deleteTrashItemPermanently('${item.id}', '${item.type}')" class="text-xs font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors border border-red-100">완전삭제</button>
+                    </div>
+                `;
+                list.appendChild(card);
+            });
+        }
+        
+        async function restoreTrashItem(id, type) {
+            if (confirm('이 항목을 복구하시겠습니까?')) {
+                const res = await fetchWithAuth('/api/trash', {
+                    method: 'PUT',
+                    body: JSON.stringify({ id, type })
+                });
+                if (res && res.success) {
+                    loadTrashFromCloud();
+                    if (type === 'rental') rentals = [];
+                    if (type === 'note') notes = [];
+                    if (type === 'ad') ads = [];
+                    alert('복구되었습니다.');
+                }
+            }
+        }
+        
+        async function deleteTrashItemPermanently(id, type) {
+            if (confirm('완전히 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) {
+                const res = await fetchWithAuth(`/api/trash?id=${id}&type=${type}`, { method: 'DELETE' });
+                if (res && res.success) {
+                    loadTrashFromCloud();
+                    alert('영구 삭제되었습니다.');
+                }
+            }
+        }
+        
+        async function emptyTrash() {
+            if (confirm('휴지통을 비우시겠습니까? 모든 항목이 영구히 삭제됩니다.')) {
+                const res = await fetchWithAuth('/api/trash', { method: 'DELETE' });
+                if (res && res.success) {
+                    loadTrashFromCloud();
+                    alert('휴지통을 모두 비웠습니다.');
+                }
+            }
+        }
+    </script>
+</body>
+
+</html>

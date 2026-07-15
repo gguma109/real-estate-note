@@ -21,8 +21,8 @@ export async function onRequestGet(context) {
     if (!token) token = 'mock_user_123';
 
     try {
-        const { results } = await env.DB.prepare(
-            "SELECT * FROM rentals WHERE user_id = ? ORDER BY created_at DESC"
+        const { results } = await env.JEJU_DB.prepare(
+            "SELECT * FROM rentals WHERE user_id = ? AND IFNULL(is_deleted, 0) = 0 ORDER BY created_at DESC"
         ).bind(token).all();
 
         return new Response(JSON.stringify(results), {
@@ -47,14 +47,14 @@ export async function onRequestPost(context) {
 
         // Ensure user exists (basic upsert)
         // In a real app we'd decode JWT to get email, but here we just ensure the user ID is tracked
-        await env.DB.prepare(
+        await env.JEJU_DB.prepare(
             "INSERT OR IGNORE INTO users (id, email) VALUES (?, ?)"
         ).bind(token, body.email || `user_${token}@placeholder.com`).run();
 
         // Upsert rental (Insert or Update if ID exists)
         const id = body.id && !body.id.startsWith('temp_') ? body.id : crypto.randomUUID();
 
-        await env.DB.prepare(`
+        await env.JEJU_DB.prepare(`
             INSERT OR REPLACE INTO rentals 
             (id, user_id, type, date, movein, address, room, deposit, premium, rent, yearly_rent, maintenance, inc_internet, inc_tv, inc_water, structure, options, special_notes, phone, common_pwd, unit_pwd, business_name, exclusive_area, supply_area, land_area, total_floor_area, sale_price, current_loan, completion_date, building_config, total_deposit, total_monthly_income, loan_interest_rate, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
@@ -95,8 +95,8 @@ export async function onRequestDelete(context) {
         }
 
         // Only delete if it belongs to this user
-        const result = await env.DB.prepare(
-            "DELETE FROM rentals WHERE id = ? AND user_id = ?"
+        const result = await env.JEJU_DB.prepare(
+            "UPDATE rentals SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?"
         ).bind(id, token).run();
 
         if (result.meta.changes === 0) {
