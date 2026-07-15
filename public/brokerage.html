@@ -686,19 +686,21 @@
             document.body.classList.remove('pb-28');
 
             if (tab === 'rental') {
-                rBtn.className = activeClass;
-                rContent.classList.remove('hidden');
-                rContent.classList.add('flex');
+                if(rBtn) rBtn.className = activeClass;
+                if(rContent) {
+                    if(rContent) rContent.classList.remove('hidden');
+                    if(rContent) rContent.classList.add('flex');
+                }
                 
-                if (document.getElementById('rental-editor-view').classList.contains('hidden')) {
+                if (document.getElementById('rental-editor-view') && document.getElementById('rental-editor-view').classList.contains('hidden')) {
                     loadRentalsFromCloud();
                 }
-                document.getElementById('sync-icon').classList.remove('hidden');
-                setTimeout(() => document.getElementById('sync-icon').classList.add('hidden'), 2000);
+                if (document.getElementById('sync-icon')) {
+                    document.getElementById('sync-icon').classList.remove('hidden');
+                    setTimeout(() => document.getElementById('sync-icon').classList.add('hidden'), 2000);
+                }
             } else if (tab === 'notes') {
-                nBtn.className = activeClass;
-                nContent.classList.remove('hidden');
-                nContent.classList.add('flex');
+                if(nContent) nContent.classList.add('flex');
 
                 // 에디터가 열려있지 않을 때만 목록 새로고침
                 if (document.getElementById('note-editor-view').classList.contains('hidden')) {
@@ -707,18 +709,18 @@
                 document.getElementById('sync-icon-notes').classList.remove('hidden');
                 setTimeout(() => document.getElementById('sync-icon-notes').classList.add('hidden'), 2000);
             } else if (tab === 'ads') {
-                aBtn.className = activeClass;
-                aContent.classList.remove('hidden');
-                aContent.classList.add('flex');
+                if(aBtn) aBtn.className = activeClass;
+                if(aContent) aContent.classList.remove('hidden');
+                if(aContent) aContent.classList.add('flex');
 
                 if (document.getElementById('ads-editor-view').classList.contains('hidden')) {
                     loadAdsFromCloud();
                 }
             } else if (tab === 'trash') {
-                if (tBtn) tBtn.className = activeClass;
+                if (tBtn) if(tBtn) tBtn.className = activeClass;
                 if (tContent) {
-                    tContent.classList.remove('hidden');
-                    tContent.classList.add('flex');
+                    if(tContent) tContent.classList.remove('hidden');
+                    if(tContent) tContent.classList.add('flex');
                 }
                 loadTrashFromCloud();
             }

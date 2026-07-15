@@ -857,21 +857,21 @@
             const activeClass = "flex-1 py-3 text-center text-sm font-bold border-b-2 text-primary border-primary transition-all flex justify-center items-center gap-2";
             const inactiveClass = "flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2";
 
-            mBtn.className = inactiveClass;
-            rBtn.className = inactiveClass;
-            nBtn.className = inactiveClass;
+            if(mBtn) mBtn.className = inactiveClass;
+            if(rBtn) rBtn.className = inactiveClass;
+            if(nBtn) nBtn.className = inactiveClass;
             if (gBtn) gBtn.className = inactiveClass;
 
-            mContent.classList.add('hidden');
-            rContent.classList.add('hidden');
-            nContent.classList.add('hidden');
+            if(mContent) mContent.classList.add('hidden');
+            if(rContent) rContent.classList.add('hidden');
+            if(nContent) nContent.classList.add('hidden');
             if (gContent) gContent.classList.add('hidden');
             if (moveoutBottom) moveoutBottom.style.display = 'none';
             document.body.classList.remove('pb-28');
 
             if (tab === 'moveout') {
-                mBtn.className = activeClass;
-                mContent.classList.remove('hidden');
+                if(mBtn) mBtn.className = activeClass;
+                if(mContent) mContent.classList.remove('hidden');
                 document.body.classList.add('pb-28');
                 if (moveoutBottom) moveoutBottom.style.display = 'block';
 
@@ -879,9 +879,9 @@
                     loadMoveoutsFromCloud();
                 }
             } else if (tab === 'rental') {
-                rBtn.className = activeClass;
-                rContent.classList.remove('hidden');
-                rContent.classList.add('flex');
+                if(rBtn) rBtn.className = activeClass;
+                if(rContent) rContent.classList.remove('hidden');
+                if(rContent) rContent.classList.add('flex');
                 
                 if (document.getElementById('rental-editor-view').classList.contains('hidden')) {
                     loadRentalsFromCloud();
@@ -889,9 +889,9 @@
                 document.getElementById('sync-icon').classList.remove('hidden');
                 setTimeout(() => document.getElementById('sync-icon').classList.add('hidden'), 2000);
             } else if (tab === 'notes') {
-                nBtn.className = activeClass;
-                nContent.classList.remove('hidden');
-                nContent.classList.add('flex');
+                if(nBtn) nBtn.className = activeClass;
+                if(nContent) nContent.classList.remove('hidden');
+                if(nContent) nContent.classList.add('flex');
 
                 // 에디터가 열려있지 않을 때만 목록 새로고침
                 if (document.getElementById('note-editor-view').classList.contains('hidden')) {
