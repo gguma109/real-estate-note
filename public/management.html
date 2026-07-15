@@ -842,16 +842,21 @@
             }
         }
 
+        
         function switchTab(tab) {
             localStorage.setItem('activeTab', tab);
             const mBtn = document.getElementById('tab-moveout');
             const rBtn = document.getElementById('tab-rental');
             const nBtn = document.getElementById('tab-notes');
             const gBtn = document.getElementById('tab-gas');
+            const cBtn = document.getElementById('tab-calc');
+            
             const mContent = document.getElementById('content-moveout');
             const rContent = document.getElementById('content-rental');
             const nContent = document.getElementById('content-notes');
             const gContent = document.getElementById('content-gas');
+            const cContent = document.getElementById('content-calc');
+            
             const moveoutBottom = document.getElementById('bottom-bar-moveout');
 
             const activeClass = "flex-1 py-3 text-center text-sm font-bold border-b-2 text-primary border-primary transition-all flex justify-center items-center gap-2";
@@ -861,269 +866,80 @@
             if(rBtn) rBtn.className = inactiveClass;
             if(nBtn) nBtn.className = inactiveClass;
             if (gBtn) gBtn.className = inactiveClass;
+            if (cBtn) cBtn.className = inactiveClass;
 
             if(mContent) mContent.classList.add('hidden');
             if(rContent) rContent.classList.add('hidden');
             if(nContent) nContent.classList.add('hidden');
-            if (gContent) gContent.classList.add('hidden');
-            if (moveoutBottom) moveoutBottom.style.display = 'none';
-            document.body.classList.remove('pb-28');
+            if(gContent) gContent.classList.add('hidden');
+            if(cContent) cContent.classList.add('hidden');
+            
+            if(moveoutBottom) moveoutBottom.classList.add('hidden');
+            document.body.classList.remove('pb-20');
 
             if (tab === 'moveout') {
                 if(mBtn) mBtn.className = activeClass;
-                if(mContent) mContent.classList.remove('hidden');
-                document.body.classList.add('pb-28');
-                if (moveoutBottom) moveoutBottom.style.display = 'block';
-
-                if (document.getElementById('moveout-editor-view').classList.contains('hidden')) {
+                if(mContent) {
+                    mContent.classList.remove('hidden');
+                    mContent.classList.add('flex');
+                }
+                if(moveoutBottom) moveoutBottom.classList.remove('hidden');
+                document.body.classList.add('pb-20');
+                if (document.getElementById('moveout-editor-view') && document.getElementById('moveout-editor-view').classList.contains('hidden')) {
                     loadMoveoutsFromCloud();
+                }
+                if (document.getElementById('sync-icon')) {
+                    document.getElementById('sync-icon').classList.remove('hidden');
+                    setTimeout(() => document.getElementById('sync-icon').classList.add('hidden'), 2000);
                 }
             } else if (tab === 'rental') {
                 if(rBtn) rBtn.className = activeClass;
-                if(rContent) rContent.classList.remove('hidden');
-                if(rContent) rContent.classList.add('flex');
-                
-                if (document.getElementById('rental-editor-view').classList.contains('hidden')) {
+                if(rContent) {
+                    rContent.classList.remove('hidden');
+                    rContent.classList.add('flex');
+                }
+                if (document.getElementById('rental-editor-view') && document.getElementById('rental-editor-view').classList.contains('hidden')) {
                     loadRentalsFromCloud();
                 }
-                document.getElementById('sync-icon').classList.remove('hidden');
-                setTimeout(() => document.getElementById('sync-icon').classList.add('hidden'), 2000);
+                if (document.getElementById('sync-icon-rental')) {
+                    document.getElementById('sync-icon-rental').classList.remove('hidden');
+                    setTimeout(() => document.getElementById('sync-icon-rental').classList.add('hidden'), 2000);
+                }
             } else if (tab === 'notes') {
                 if(nBtn) nBtn.className = activeClass;
-                if(nContent) nContent.classList.remove('hidden');
-                if(nContent) nContent.classList.add('flex');
-
-                // 에디터가 열려있지 않을 때만 목록 새로고침
-                if (document.getElementById('note-editor-view').classList.contains('hidden')) {
-                    loadNotesFromCloud();
+                if(nContent) {
+                    nContent.classList.remove('hidden');
+                    nContent.classList.add('flex');
                 }
-                document.getElementById('sync-icon-notes').classList.remove('hidden');
-                setTimeout(() => document.getElementById('sync-icon-notes').classList.add('hidden'), 2000);
+                if (document.getElementById('note-editor-view') && document.getElementById('note-editor-view').classList.contains('hidden')) {
+                    if (typeof loadNotesFromCloud === 'function') loadNotesFromCloud();
+                }
+                if (document.getElementById('sync-icon-notes')) {
+                    document.getElementById('sync-icon-notes').classList.remove('hidden');
+                    setTimeout(() => document.getElementById('sync-icon-notes').classList.add('hidden'), 2000);
+                }
             } else if (tab === 'gas') {
-                if (gBtn) gBtn.className = activeClass;
-                if (gContent) {
+                if(gBtn) gBtn.className = activeClass;
+                if(gContent) {
                     gContent.classList.remove('hidden');
                     gContent.classList.add('flex');
                 }
-                loadGasMeters();
-            }
-        }
-
-        // --- 1.2 퇴실확인서 (Moveout) 로직 ---
-        let moveouts = [];
-
-        async function loadMoveoutsFromCloud() {
-            document.getElementById('loadingIndicatorMoveout').classList.remove('hidden');
-            document.getElementById('moveout-list').innerHTML = '';
-            document.getElementById('moveout-empty').classList.add('hidden');
-
-            const data = await fetchWithAuth('/api/moveouts');
-            document.getElementById('loadingIndicatorMoveout').classList.add('hidden');
-
-            if (data && Array.isArray(data)) {
-                moveouts = data;
-            } else {
-                moveouts = [];
-            }
-            renderMoveouts();
-        }
-
-        function renderMoveouts() {
-            const list = document.getElementById('moveout-list');
-            const empty = document.getElementById('moveout-empty');
-            const indicator = document.getElementById('loadingIndicatorMoveout');
-
-            if (!indicator.classList.contains('hidden')) return; 
-
-            if (!moveouts || moveouts.length === 0) {
-                list.innerHTML = '';
-                empty.classList.remove('hidden');
-                return;
-            }
-            empty.classList.add('hidden');
-
-            list.innerHTML = moveouts.map(m => {
-                const dateObj = m.created_at ? new Date(m.created_at) : new Date();
-                const dateStr = `${dateObj.getFullYear()}.${String(dateObj.getMonth() + 1).padStart(2,'0')}.${String(dateObj.getDate()).padStart(2,'0')}`;
-                const title = m.address ? `${m.address} ${m.room || ''}`.trim() : '주소 미입력 (퇴실)';
-                const tenant = m.tenant_name ? `${m.tenant_name} 세입자` : '';
-
-                return `
-                <div class="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 p-4 cursor-pointer hover:border-blue-400 transition-colors active:scale-[0.98]" onclick="openMoveoutEditor('${m.id}')">
-                    <div class="flex items-center gap-2 mb-2">
-                        <span class="text-xs font-black px-2 py-0.5 rounded bg-blue-50 text-blue-700 whitespace-nowrap border border-blue-100">${m.room_type || '원룸'}</span>
-                        <h3 class="font-black text-gray-800 text-[1.1rem] truncate">${title}</h3>
-                    </div>
-                    ${tenant ? `<p class="text-[0.9rem] font-bold text-gray-600 mb-3 truncate bg-gray-50 inline-block px-2 py-1 rounded-md">${tenant}</p>` : ''}
-                    <div class="flex justify-between items-center text-[0.7rem] text-gray-400 font-medium pt-2 border-t border-gray-50">
-                        <span>작성일: ${dateStr}</span>
-                        <button onclick="event.stopPropagation(); deleteMoveout('${m.id}')" class="text-red-400 hover:text-red-600 font-bold px-1 rounded active:scale-95 transition-all">삭제</button>
-                    </div>
-                </div>
-            `}).join('');
-        }
-
-        function addMoveout() {
-            const newId = 'temp_' + Date.now();
-            const newMoveout = {
-                id: newId,
-                contract_type: '만기',
-                room_type: '원룸',
-                tenant_name: '', address: '', room: '',
-                current_pwd: '', new_pwd: '',
-                empty_status: '', cleaning_status: '', damage_status: '',
-                gas_status: '', water_status: '', electric_status: '',
-                refund_bank: '', refund_account: '', refund_owner: '',
-                form_data: '{}'
-            };
-
-            moveouts.unshift(newMoveout); 
-            openMoveoutEditor(newId);
-        }
-
-        async function deleteMoveout(id) {
-            if (confirm('클라우드에서 이 퇴실확인서를 영구 삭제하시겠습니까?')) {
-                moveouts = moveouts.filter(m => m.id !== id);
-                renderMoveouts();
-
-                if (!id.startsWith('temp_')) {
-                    await fetchWithAuth(`/api/moveouts?id=${id}`, { method: 'DELETE' });
+                if (document.getElementById('gas-editor-view') && document.getElementById('gas-editor-view').classList.contains('hidden')) {
+                    if (typeof loadGasFromCloud === 'function') loadGasFromCloud();
                 }
+                if (document.getElementById('sync-icon-gas')) {
+                    document.getElementById('sync-icon-gas').classList.remove('hidden');
+                    setTimeout(() => document.getElementById('sync-icon-gas').classList.add('hidden'), 2000);
+                }
+            } else if (tab === 'calc') {
+                if(cBtn) cBtn.className = activeClass;
+                if(cContent) {
+                    cContent.classList.remove('hidden');
+                    cContent.classList.add('flex');
+                }
+                calculateSettlement();
             }
         }
-
-        function openMoveoutEditor(id) {
-            const m = moveouts.find(item => item.id === id);
-            if (!m) return;
-
-            document.getElementById('moveout-list-view').classList.add('hidden');
-            document.getElementById('moveout-editor-view').classList.remove('hidden');
-
-            document.getElementById('moveout-id').value = m.id;
-            
-            // 기존 데이터 복원 (DOM 조작)
-            const form = document.getElementById('moveout-form');
-            form.reset(); // 폼 초기화부터
-            
-            // 라디오버튼 / 셀렉트 / 인풋 초기화 로직 구현: form_data JSON 파싱
-            if (m.form_data) {
-                try {
-                    const parsed = JSON.parse(m.form_data);
-                    
-                    // 체크박스 매핑 복원 등
-                    for (const [key, val] of Object.entries(parsed)) {
-                        const el = form.querySelector(`[name="${key}"], [id="${key}"]`);
-                        if(el && el.type === 'radio') {
-                            const rb = form.querySelector(`[name="${key}"][value="${val}"]`);
-                            if(rb) rb.checked = true;
-                            else if(key.startsWith('check-') && typeof val === 'object') {
-                                // 체크리스트 특수 처리: {status: 'issue', detail: '...'}
-                                const rbStatus = form.querySelector(`[name="${key}"][value="${val.status}"]`);
-                                if(rbStatus) rbStatus.checked = true;
-                                const index = key.split('-')[1];
-                                toggleDetail(index, val.status === 'issue');
-                                if(val.status === 'issue') {
-                                    const det = document.getElementById(`detail-${index}`);
-                                    if(det) det.querySelector('input').value = val.detail;
-                                }
-                            }
-                        } else if (el && el.type === 'checkbox') {
-                            el.checked = val;
-                        } else if (el) {
-                            el.value = val;
-                        }
-                    }
-                    
-                    // 금액 합산계산 재트리거
-                    const dp = document.getElementById('cost-deposit');
-                    if(dp) formatAndCalc(dp);
-
-                } catch (e) { console.error('form_data parse error:', e); }
-            } else {
-                // 초기값 없는 신규
-                initMoveoutChecklist(); // 리셋된 체크리스트 정상화
-            }
-        }
-
-        function closeMoveoutEditor() {
-            // 목록으로 돌아갈 때 자동저장을 한 번 시도할 수 있지만 명시적 저장이 나음.
-            document.getElementById('moveout-editor-view').classList.add('hidden');
-            document.getElementById('moveout-list-view').classList.remove('hidden');
-            renderMoveouts();
-        }
-
-        async function saveMoveoutToCloud() {
-            const id = document.getElementById('moveout-id').value;
-            const form = document.getElementById('moveout-form');
-            
-            if (!id) return;
-            let mIndex = moveouts.findIndex(item => item.id === id);
-            
-            // 현재 폼 데이터를 긁어와서 저장용 JSON 객체 생성
-            const formDataObj = {};
-            const elements = form.querySelectorAll('input, select, textarea');
-            elements.forEach(el => {
-                if (el.type === 'radio') {
-                    if (el.checked) formDataObj[el.name] = el.value;
-                } else if (el.type === 'checkbox') {
-                    formDataObj[el.id || el.name] = el.checked;
-                } else if (el.id && el.id.startsWith('detail-')) {
-                   // ignore - handled via radio
-                } else if (el.id || el.name) {
-                    formDataObj[el.id || el.name] = el.value;
-                }
-            });
-            
-            // 체크리스트 특수 긁기
-            checkItems.forEach((_, idx) => {
-                const radios = form.querySelectorAll(`[name="check-${idx}"]`);
-                let status = 'normal';
-                radios.forEach(r => { if(r.checked) status = r.value; });
-                const detailInput = document.getElementById(`detail-${idx}`)?.querySelector('input')?.value || '';
-                formDataObj[`check-${idx}`] = { status, detail: detailInput };
-            });
-
-            // 대표 필드 몇 개 뽑기 (address, room, room_type 등)
-            // 여기서는 HTML 구조상 select 등 위치에 id나 name 파싱이 까다로우면 통짜 form_data로 사용.
-            // (강제성: 백엔드에서 필요한 필드는 form_data 내에서 쓴다고 가정)
-            
-            // 단순화를 위해 무조건 통 JSON으로 form_data에 담음.
-            const payload = {
-                id: id,
-                email: currentUserEmail,
-                form_data: JSON.stringify(formDataObj)
-                // contract_type 등은 백엔드가 요구하면 파싱해서 넣어야 하나 스키마가 널널하고 form_data에 있으므로 빈 문자열 지원.
-            };
-
-            const res = await fetchWithAuth('/api/moveouts', {
-                method: 'POST',
-                body: JSON.stringify(payload)
-            });
-
-            if (res && res.success && res.id) {
-                if (id.startsWith('temp_')) {
-                    if(mIndex > -1) {
-                        moveouts[mIndex].id = res.id;
-                        document.getElementById('moveout-id').value = res.id;
-                    }
-                }
-                alert('퇴실확인서가 성공적으로 클라우드에 저장되었습니다!');
-                
-                // 데이터 최신화
-                if(mIndex > -1){
-                    moveouts[mIndex].form_data = payload.form_data;
-                    moveouts[mIndex].created_at = new Date().toISOString(); // 간단업뎃
-                }
-            } else {
-                alert('저장 중 오류가 발생했습니다.');
-            }
-        }
-
-
-        // --- 2. 클라우드 연동 임대관리 (Rental) 로직 ---
-        let rentals = [];
-        // 타이머 캐싱으로 너무 잦은 API 통신 막기
-        let syncTimeout = null;
 
         async function fetchWithAuth(url, options = {}) {
             const token = localStorage.getItem('auth_token');
@@ -2449,6 +2265,119 @@
                 alert('복사 실패: ' + err);
             }
         }
+    
+        // ========== 계산기 로직 ==========
+        let calcType = 'end'; // 'end' = 만기퇴실, 'mid' = 중도퇴실
+
+        function toggleCalcType(type) {
+            calcType = type;
+            const endBtn = document.getElementById('calc-type-end');
+            const midBtn = document.getElementById('calc-type-mid');
+            const midFields = document.getElementById('calc-mid-fields');
+
+            if (type === 'end') {
+                endBtn.className = "flex-1 py-2 text-sm font-bold bg-white text-primary rounded-lg shadow-sm transition-all";
+                midBtn.className = "flex-1 py-2 text-sm font-bold text-gray-500 rounded-lg hover:bg-gray-100 transition-all";
+                midFields.classList.add('hidden');
+            } else {
+                midBtn.className = "flex-1 py-2 text-sm font-bold bg-white text-primary rounded-lg shadow-sm transition-all";
+                endBtn.className = "flex-1 py-2 text-sm font-bold text-gray-500 rounded-lg hover:bg-gray-100 transition-all";
+                midFields.classList.remove('hidden');
+            }
+            calculateSettlement();
+        }
+
+        function formatCalcInput(input) {
+            let val = input.value.replace(/[^0-9]/g, '');
+            if (val) {
+                input.value = Number(val).toLocaleString();
+            } else {
+                input.value = '';
+            }
+        }
+
+        function getNumValue(id) {
+            const val = document.getElementById(id).value.replace(/,/g, '');
+            return val ? parseInt(val, 10) : 0;
+        }
+
+        function calculateSettlement() {
+            const deposit = getNumValue('calc-deposit');
+            let deduction = 0;
+            deduction += getNumValue('calc-unpaid-rent');
+            deduction += getNumValue('calc-unpaid-elec');
+            deduction += getNumValue('calc-unpaid-gas');
+            deduction += getNumValue('calc-cleaning');
+
+            if (calcType === 'mid') {
+                deduction += getNumValue('calc-brokerage');
+                deduction += getNumValue('calc-penalty');
+            }
+
+            const total = deposit - deduction;
+
+            document.getElementById('calc-total-deduction').innerText = '- ' + deduction.toLocaleString() + ' 원';
+            document.getElementById('calc-final-return').innerHTML = total.toLocaleString() + ' <span class="text-xl font-bold">원</span>';
+        }
+
+        function copySettlement() {
+            const typeStr = calcType === 'end' ? '만기퇴실' : '중도퇴실';
+            const deposit = document.getElementById('calc-deposit').value || '0';
+            const unpaidRent = document.getElementById('calc-unpaid-rent').value || '0';
+            const unpaidElec = document.getElementById('calc-unpaid-elec').value || '0';
+            const unpaidGas = document.getElementById('calc-unpaid-gas').value || '0';
+            const cleaning = document.getElementById('calc-cleaning').value || '0';
+            const brokerage = document.getElementById('calc-brokerage').value || '0';
+            const penalty = document.getElementById('calc-penalty').value || '0';
+            const final = document.getElementById('calc-final-return').innerText.replace(' 원', '');
+            
+            let text = `[보증금 정산 내역 (${typeStr})]
+
+`;
+            text += `■ 보증금(원금): ${deposit}원
+
+`;
+            text += `■ 차감(공제) 내역
+`;
+            if (unpaidRent !== '0') text += `- 미납 월세/관리비: ${unpaidRent}원
+`;
+            if (unpaidElec !== '0') text += `- 미납 전기세: ${unpaidElec}원
+`;
+            if (unpaidGas !== '0') text += `- 미납 가스비: ${unpaidGas}원
+`;
+            if (cleaning !== '0') text += `- 청소/원상복구비: ${cleaning}원
+`;
+            
+            if (calcType === 'mid') {
+                if (brokerage !== '0') text += `- 중개수수료(복비): ${brokerage}원
+`;
+                if (penalty !== '0') text += `- 잔여/위약 월세: ${penalty}원
+`;
+            }
+            
+            const totalDeduction = document.getElementById('calc-total-deduction').innerText.replace('- ', '').replace(' 원', '');
+            text += `------------------------
+`;
+            text += `공제액 합계: ${totalDeduction}원
+
+`;
+            text += `▶ 최종 반환액: ${final}원
+`;
+
+            navigator.clipboard.writeText(text).then(() => {
+                const btn = event.currentTarget;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> 복사 완료!';
+                btn.classList.replace('bg-gray-800', 'bg-green-600');
+                setTimeout(() => {
+                    btn.innerHTML = originalText;
+                    btn.classList.replace('bg-green-600', 'bg-gray-800');
+                }, 2000);
+            }).catch(err => {
+                alert('복사에 실패했습니다.');
+            });
+        }
+
     </script>
 </body>
 
