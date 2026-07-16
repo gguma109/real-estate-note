@@ -2750,7 +2750,31 @@
             document.getElementById('calc-final-return').innerHTML = total.toLocaleString() + ' <span class="text-xl font-bold">원</span>';
         }
 
-        function copySettlement() {
+        async function copyTextToClipboard(text) {
+            try {
+                if (navigator.clipboard && navigator.clipboard.writeText) {
+                    await navigator.clipboard.writeText(text);
+                    return true;
+                } else {
+                    const textArea = document.createElement("textarea");
+                    textArea.value = text;
+                    textArea.style.position = "fixed";
+                    textArea.style.top = "0";
+                    textArea.style.left = "0";
+                    document.body.appendChild(textArea);
+                    textArea.focus();
+                    textArea.select();
+                    const successful = document.execCommand('copy');
+                    document.body.removeChild(textArea);
+                    return successful;
+                }
+            } catch (err) {
+                console.error('Fallback copy failed', err);
+                return false;
+            }
+        }
+
+        async function copySettlement(event) {
             const start = document.getElementById('calc-date-start').value || '-';
             const end = document.getElementById('calc-date-end').value || '-';
             const moveout = document.getElementById('calc-date-moveout').value || '-';
@@ -2795,18 +2819,21 @@
             text += `보증금 ${deposit}원 + 반환임대료 ${refundRentStr.replace('원','')}원 - 공제합계 ${totalDeduction.replace('원','')}원\n`;
             text += `■ 합계: ${final}원\n`;
 
-            navigator.clipboard.writeText(text).then(() => {
-                const btn = event.currentTarget;
-                const originalText = btn.innerHTML;
-                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> 복사 완료!';
-                btn.classList.replace('bg-gray-800', 'bg-green-600');
-                setTimeout(() => {
-                    btn.innerHTML = originalText;
-                    btn.classList.replace('bg-green-600', 'bg-gray-800');
-                }, 2000);
-            }).catch(err => {
+            const success = await copyTextToClipboard(text);
+            if (success) {
+                const btn = event ? event.currentTarget : document.querySelector('button[onclick="copySettlement(event)"]');
+                if (btn) {
+                    const originalText = btn.innerHTML;
+                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg> 복사 완료!';
+                    btn.classList.replace('bg-gray-800', 'bg-green-600');
+                    setTimeout(() => {
+                        btn.innerHTML = originalText;
+                        btn.classList.replace('bg-green-600', 'bg-gray-800');
+                    }, 2000);
+                }
+            } else {
                 alert('복사에 실패했습니다.');
-            });
+            }
         }
 
         // ========== 3. 정산 계산기 (Settlements) ==========
