@@ -946,10 +946,16 @@
                 const addressPart = r.address ? `${r.address} ${r.room || ''}`.trim() : '주소 미입력';
                 const businessPart = r.business_name ? `(${r.business_name})` : '';
                 const title = `${addressPart} ${businessPart}`.trim() || '정보 미입력 매물';
-                const premiumStr = r.premium ? ` / 권 ${r.premium}` : '';
-                const rentStr = r.rent ? ` / 월 ${r.rent}` : (r.yearly_rent ? ` / 년 ${r.yearly_rent}` : '');
-                const depositStr = r.deposit ? `보 ${r.deposit}` : '보증금 미입력';
-                const summary = `${depositStr}${rentStr}${premiumStr}`;
+                let priceParts = [];
+                if (r.sale_price) priceParts.push(`매매 ${r.sale_price}`);
+                if (r.deposit) priceParts.push(`보 ${r.deposit}`);
+                if (r.rent) priceParts.push(`월 ${r.rent}`);
+                if (r.yearly_rent) priceParts.push(`년 ${r.yearly_rent}`);
+                if (r.premium) priceParts.push(`권 ${r.premium}`);
+                const premiumStr = '';
+                const rentStr = '';
+                const depositStr = '';
+                const summary = priceParts.length > 0 ? priceParts.join(' / ') : '가격 정보 없음';
 
                 return `
                 <div class="bg-white rounded-xl shadow-[0_2px_8px_rgba(0,0,0,0.04)] border border-gray-100 p-4 cursor-pointer hover:border-darkgreen transition-colors active:scale-[0.98] relative overflow-hidden" onclick="openRentalEditor('${r.id}')">
