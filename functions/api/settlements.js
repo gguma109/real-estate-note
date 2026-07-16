@@ -18,8 +18,13 @@ export async function onRequestGet(context) {
             )
         `).run();
 
+        try {
+            await env.JEJU_DB.prepare("ALTER TABLE settlements ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
+            await env.JEJU_DB.prepare("ALTER TABLE settlements ADD COLUMN deleted_at DATETIME").run();
+        } catch(e) {}
+
         const { results } = await env.JEJU_DB.prepare(
-            "SELECT * FROM settlements WHERE user_id = ? ORDER BY updated_at DESC"
+            "SELECT * FROM settlements WHERE user_id = ? AND IFNULL(is_deleted, 0) = 0 ORDER BY updated_at DESC"
         ).bind(token).all();
 
         return new Response(JSON.stringify(results), {
@@ -87,7 +92,7 @@ export async function onRequestDelete(context) {
     if (!id) return new Response(JSON.stringify({ error: "ID required" }), { status: 400 });
 
     try {
-        await env.JEJU_DB.prepare("DELETE FROM settlements WHERE id = ? AND user_id = ?").bind(id, token).run();
+        await env.JEJU_DB.prepare("UPDATE settlements SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?").bind(id, token).run();
         return new Response(JSON.stringify({ success: true }));
     } catch (e) {
         return new Response(JSON.stringify({ success: false, error: e.message }), { status: 500 });

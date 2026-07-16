@@ -6,8 +6,13 @@ export async function onRequestGet(context) {
     if (!token) token = 'mock_user_123';
 
     try {
+        try {
+            await env.DB.prepare("ALTER TABLE gas_meters ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
+            await env.DB.prepare("ALTER TABLE gas_meters ADD COLUMN deleted_at DATETIME").run();
+        } catch(e) {}
+
         const { results } = await env.DB.prepare(
-            "SELECT * FROM gas_meters WHERE user_id = ? ORDER BY created_at DESC"
+            "SELECT * FROM gas_meters WHERE user_id = ? AND IFNULL(is_deleted, 0) = 0 ORDER BY created_at DESC"
         ).bind(token).all();
 
         return new Response(JSON.stringify(results), {
@@ -70,7 +75,7 @@ export async function onRequestDelete(context) {
         }
 
         const result = await env.DB.prepare(
-            "DELETE FROM gas_meters WHERE id = ? AND user_id = ?"
+            "UPDATE gas_meters SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?"
         ).bind(id, token).run();
 
         if (result.meta.changes === 0) {

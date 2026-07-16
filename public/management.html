@@ -210,14 +210,16 @@
                 </header>
                 <div class="flex border-b border-gray-200">
                     <button onclick="switchTab('moveout')" id="tab-moveout"
-                        class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-primary border-primary transition-all">퇴실확인서</button>
+                        class="flex-1 py-3 text-center text-xs font-bold border-b-2 text-primary border-primary transition-all">퇴실확인서</button>
                     <button onclick="switchTab('notes')" id="tab-notes"
-                        class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2">메모장
-                        <span id="sync-icon-notes" class="hidden w-2 h-2 rounded-full bg-green-500"></span></button>
+                        class="flex-1 py-3 text-center text-xs font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-1">메모장
+                        <span id="sync-icon-notes" class="hidden w-1.5 h-1.5 rounded-full bg-green-500"></span></button>
                     <button onclick="switchTab('gas')" id="tab-gas"
-                        class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2">가스검침표</button>
+                        class="flex-1 py-3 text-center text-xs font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-1">가스검침표</button>
                     <button onclick="switchTab('calc')" id="tab-calc"
-                        class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2">정산계산기</button>
+                        class="flex-1 py-3 text-center text-xs font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-1">정산계산기</button>
+                    <button onclick="switchTab('trash')" id="tab-trash"
+                        class="flex-1 py-3 text-center text-xs font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-1">휴지통</button>
                 </div>
             </div>
 
@@ -857,6 +859,28 @@
                 </div>
             </div>
 
+            <!-- ===== TAB: 휴지통 ===== -->
+            <div id="content-trash" class="hidden flex-1 flex flex-col bg-white">
+                <div class="flex-1 overflow-y-auto p-4 relative bg-gray-50 pb-24">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="font-bold text-gray-700">휴지통</h2>
+                        <button onclick="emptyTrash()" class="text-xs font-bold text-red-500 bg-red-50 px-3 py-1.5 rounded-lg border border-red-100 hover:bg-red-100 transition-colors">휴지통 비우기</button>
+                    </div>
+                    
+                    <div id="loadingIndicatorTrash" class="hidden justify-center items-center py-10 flex-col gap-3">
+                        <div class="spinner"></div>
+                        <p class="text-xs text-gray-500 font-bold">휴지통 불러오는 중...</p>
+                    </div>
+
+                    <div id="trash-list" class="space-y-3"></div>
+                    
+                    <div id="trash-empty" class="text-center py-24 hidden">
+                        <div class="text-5xl mb-4 opacity-30">🗑️</div>
+                        <p class="text-gray-500 font-bold mb-1">휴지통이 비어있습니다.</p>
+                    </div>
+                </div>
+            </div>
+
         </div>
     </div>
     </div>
@@ -999,36 +1023,40 @@
             }
         }
 
-                function switchTab(tab) {
+        function switchTab(tab) {
             localStorage.setItem('activeTab', tab);
             const mBtn = document.getElementById('tab-moveout');
             const rBtn = document.getElementById('tab-rental');
             const nBtn = document.getElementById('tab-notes');
             const gBtn = document.getElementById('tab-gas');
             const cBtn = document.getElementById('tab-calc');
+            const tBtn = document.getElementById('tab-trash');
 
             const mContent = document.getElementById('content-moveout');
             const rContent = document.getElementById('content-rental');
             const nContent = document.getElementById('content-notes');
             const gContent = document.getElementById('content-gas');
             const cContent = document.getElementById('content-calc');
+            const tContent = document.getElementById('content-trash');
 
             const moveoutBottom = document.getElementById('bottom-bar-moveout');
 
-            const activeClass = "flex-1 py-3 text-center text-sm font-bold border-b-2 text-primary border-primary transition-all flex justify-center items-center gap-2";
-            const inactiveClass = "flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2";
+            const activeClass = "flex-1 py-3 text-center text-xs font-bold border-b-2 text-primary border-primary transition-all flex justify-center items-center gap-1";
+            const inactiveClass = "flex-1 py-3 text-center text-xs font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-1";
 
             if(mBtn) mBtn.className = inactiveClass;
             if(rBtn) rBtn.className = inactiveClass;
             if(nBtn) nBtn.className = inactiveClass;
             if(gBtn) gBtn.className = inactiveClass;
             if(cBtn) cBtn.className = inactiveClass;
+            if(tBtn) tBtn.className = inactiveClass;
 
             if(mContent) mContent.classList.add('hidden');
             if(rContent) rContent.classList.add('hidden');
             if(nContent) nContent.classList.add('hidden');
             if(gContent) gContent.classList.add('hidden');
             if(cContent) cContent.classList.add('hidden');
+            if(tContent) tContent.classList.add('hidden');
             if(moveoutBottom) moveoutBottom.style.display = 'none';
             document.body.classList.remove('pb-28');
 
@@ -1081,6 +1109,13 @@
                 if (document.getElementById('calc-editor-view').classList.contains('hidden')) {
                     loadSettlements();
                 }
+            } else if (tab === 'trash') {
+                if(tBtn) tBtn.className = activeClass;
+                if(tContent) {
+                    tContent.classList.remove('hidden');
+                    tContent.classList.add('flex');
+                }
+                loadTrashFromCloud();
             }
         }
 
@@ -1157,7 +1192,7 @@
         }
 
         async function deleteMoveout(id) {
-            if (confirm('클라우드에서 이 퇴실확인서를 영구 삭제하시겠습니까?')) {
+            if (confirm('이 퇴실확인서를 휴지통으로 이동하시겠습니까?')) {
                 moveouts = moveouts.filter(m => m.id !== id);
                 renderMoveouts();
 
@@ -2160,7 +2195,7 @@
         }
 
         async function deleteCurrentNote() {
-            if (confirm('이 노트를 영구 삭제하시겠습니까?')) {
+            if (confirm('이 노트를 휴지통으로 이동하시겠습니까?')) {
                 const id = document.getElementById('editor-note-id').value;
                 notes = notes.filter(n => n.id !== id);
                 closeNoteEditor(); // UI부터 닫기
@@ -2535,7 +2570,7 @@
             const id = document.getElementById('gas-id').value;
             if (!id || id.startsWith('temp_')) return;
             
-            if(!confirm('정말로 이 가스검침표를 삭제하시겠습니까?')) return;
+            if(!confirm('이 가스검침표를 휴지통으로 이동하시겠습니까?')) return;
 
             try {
                 const response = await fetch(`/api/gas_meters?id=${id}`, {
@@ -2545,7 +2580,7 @@
                 
                 if (!response.ok) throw new Error('Delete failed');
                 
-                alert('삭제되었습니다.');
+                alert('휴지통으로 이동되었습니다.');
                 closeGasEditor();
                 loadGasMeters();
             } catch(e) {
@@ -2951,13 +2986,108 @@
         }
 
         async function deleteSettlement(id) {
-            if (confirm('이 정산 내역을 삭제하시겠습니까?')) {
+            if (confirm('이 정산 내역을 휴지통으로 이동하시겠습니까?')) {
                 settlements = settlements.filter(r => r.id !== id);
                 renderSettlements();
 
                 if (!id.startsWith('settle_')) {
                     await fetchWithAuth('/api/settlements?id=' + id, { method: 'DELETE' });
                 }
+            }
+        }
+
+        // --- Trash Logic ---
+        async function loadTrashFromCloud() {
+            document.getElementById('loadingIndicatorTrash').classList.remove('hidden');
+            document.getElementById('trash-list').innerHTML = '';
+            document.getElementById('trash-empty').classList.add('hidden');
+
+            const data = await fetchWithAuth('/api/trash');
+            document.getElementById('loadingIndicatorTrash').classList.add('hidden');
+
+            if (data && Array.isArray(data)) {
+                const filteredData = data.filter(item => ['moveout', 'gas_meter', 'settlement', 'note'].includes(item.type));
+                if (filteredData.length > 0) {
+                    renderTrashList(filteredData);
+                } else {
+                    document.getElementById('trash-empty').classList.remove('hidden');
+                }
+            } else {
+                document.getElementById('trash-empty').classList.remove('hidden');
+            }
+        }
+
+        function renderTrashList(trashItems) {
+            const list = document.getElementById('trash-list');
+            list.innerHTML = '';
+
+            trashItems.forEach(item => {
+                const dateObj = new Date(item.deleted_at);
+                const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일 ${dateObj.getHours()}:${String(dateObj.getMinutes()).padStart(2, '0')}`;
+
+                let typeLabel = '';
+                let typeColor = '';
+                if (item.type === 'moveout') { typeLabel = '퇴실확인서'; typeColor = 'bg-blue-100 text-blue-800'; }
+                else if (item.type === 'gas_meter') { typeLabel = '가스검침'; typeColor = 'bg-purple-100 text-purple-800'; }
+                else if (item.type === 'settlement') { typeLabel = '정산계산기'; typeColor = 'bg-orange-100 text-orange-800'; }
+                else if (item.type === 'note') { typeLabel = '메모장'; typeColor = 'bg-green-100 text-green-800'; }
+
+                const title = item.title_hint || '제목 없음';
+                const info = item.info || '';
+
+                const div = document.createElement('div');
+                div.className = "bg-white rounded-xl shadow-sm border border-gray-200 p-4 flex justify-between items-center gap-4";
+                div.innerHTML = `
+                    <div class="flex-1 min-w-0">
+                        <div class="flex items-center gap-2 mb-1.5">
+                            <span class="text-[10px] font-black px-2 py-0.5 rounded ${typeColor}">${typeLabel}</span>
+                            <span class="text-[10px] text-gray-400 font-medium">삭제일: ${dateStr}</span>
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-sm truncate mb-0.5">${title}</h3>
+                        <p class="text-xs text-gray-400 truncate">${info}</p>
+                    </div>
+                    <div class="flex gap-2 shrink-0">
+                        <button onclick="restoreTrashItem('${item.id}', '${item.type}')" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100">복구</button>
+                        <button onclick="deleteTrashItemPermanently('${item.id}', '${item.type}')" class="text-xs font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors border border-red-100">완전삭제</button>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        async function restoreTrashItem(id, type) {
+            try {
+                const res = await fetchWithAuth('/api/trash', {
+                    method: 'PUT',
+                    body: JSON.stringify({ id, type })
+                });
+                if (res && res.success) {
+                    alert('성공적으로 복구되었습니다.');
+                    loadTrashFromCloud();
+                }
+            } catch (e) {
+                console.error(e);
+            }
+        }
+
+        async function deleteTrashItemPermanently(id, type) {
+            if (confirm('이 항목을 영구히 완전히 삭제하시겠습니까? 복구할 수 없습니다.')) {
+                const res = await fetchWithAuth(`/api/trash?id=${id}&type=${type}`, { method: 'DELETE' });
+                if (res && res.success) {
+                    alert('영구 삭제되었습니다.');
+                    loadTrashFromCloud();
+                }
+            }
+        }
+
+        async function emptyTrash() {
+            if (confirm('휴지통을 비우시겠습니까? 주택관리에서 삭제한 모든 항목(메모, 퇴실확인서, 가스검침, 정산계산기)이 영구히 삭제됩니다.')) {
+                await fetchWithAuth('/api/trash?type=moveout', { method: 'DELETE' });
+                await fetchWithAuth('/api/trash?type=gas_meter', { method: 'DELETE' });
+                await fetchWithAuth('/api/trash?type=settlement', { method: 'DELETE' });
+                await fetchWithAuth('/api/trash?type=note', { method: 'DELETE' });
+                alert('휴지통을 비웠습니다.');
+                loadTrashFromCloud();
             }
         }
 
