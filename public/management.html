@@ -2821,6 +2821,7 @@
 
             const success = await copyTextToClipboard(text);
             if (success) {
+                alert('복사되었습니다!');
                 const btn = event ? event.currentTarget : document.querySelector('button[onclick="copySettlement(event)"]');
                 if (btn) {
                     const originalText = btn.innerHTML;
@@ -3004,6 +3005,14 @@
                 if(sIndex > -1) {
                     settlements[sIndex].data = JSON.stringify(payloadData);
                     settlements[sIndex].updated_at = new Date().toISOString();
+                } else {
+                    settlements.unshift({
+                        id: res.id,
+                        user_id: currentUserId,
+                        data: JSON.stringify(payloadData),
+                        created_at: new Date().toISOString(),
+                        updated_at: new Date().toISOString()
+                    });
                 }
                 alert('성공적으로 저장되었습니다!');
                 closeSettlementEditor();

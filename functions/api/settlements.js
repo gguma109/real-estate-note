@@ -57,7 +57,7 @@ export async function onRequestPost(context) {
 
         const body = await request.json();
         const id = body.id || 'settle_' + Date.now();
-        const dataStr = JSON.stringify(body);
+        const dataStr = typeof body.data === 'string' ? body.data : JSON.stringify(body.data || body);
 
         const existing = await env.JEJU_DB.prepare("SELECT id FROM settlements WHERE id = ? AND user_id = ?").bind(id, token).first();
 
