@@ -1732,8 +1732,8 @@
             // 2. Sort
             filteredAds.sort((a, b) => {
                 if (sortType === 'latest' || sortType === 'oldest') {
-                    const timeA = a.created_at || a.id;
-                    const timeB = b.created_at || b.id;
+                    const timeA = a.updated_at || a.created_at || a.id;
+                    const timeB = b.updated_at || b.created_at || b.id;
                     const compare = timeB.localeCompare(timeA); // Descending by default
                     return sortType === 'latest' ? compare : -compare;
                 } else if (sortType === 'no_asc' || sortType === 'no_desc') {

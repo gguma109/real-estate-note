@@ -11,7 +11,7 @@ export async function onRequestGet(context) {
         
         try {
             await env.JEJU_DB.prepare(`
-                CREATE TABLE IF NOT EXISTS rentals (
+                CREATE TABLE IF NOT EXISTS ads (
                     id TEXT PRIMARY KEY,
                     user_id TEXT NOT NULL,
                     category TEXT,
@@ -21,11 +21,11 @@ export async function onRequestGet(context) {
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             `).run();
-            await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
-            await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN deleted_at DATETIME").run();
+            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
+            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN deleted_at DATETIME").run();
         } catch (err) {}
         const { results } = await env.JEJU_DB.prepare(
-            "SELECT * FROM rentals WHERE user_id = ? ORDER BY updated_at DESC"
+            "SELECT * FROM ads WHERE user_id = ? ORDER BY updated_at DESC"
         ).bind(token).all();
 
         return new Response(JSON.stringify(results), {
@@ -58,7 +58,7 @@ export async function onRequestPost(context) {
         const id = body.id && !body.id.startsWith('temp_') ? body.id : crypto.randomUUID();
 
         await env.JEJU_DB.prepare(`
-            INSERT OR REPLACE INTO rentals 
+            INSERT OR REPLACE INTO ads 
             (id, user_id, category, data, updated_at)
             VALUES (?, ?, ?, ?, CURRENT_TIMESTAMP)
         `).bind(
@@ -89,7 +89,7 @@ export async function onRequestDelete(context) {
         if (!id) return new Response(JSON.stringify({ error: "Missing ID" }), { status: 400 });
 
         const result = await env.JEJU_DB.prepare(
-            "DELETE FROM rentals WHERE id = ? AND user_id = ?"
+            "DELETE FROM ads WHERE id = ? AND user_id = ?"
         ).bind(id, token).run();
 
         if (result.meta.changes === 0) {
