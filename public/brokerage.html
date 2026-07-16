@@ -2557,7 +2557,7 @@
         }
 
         async function deleteAd(id) {
-            if (confirm('이 매물을 영구 삭제하시겠습니까?')) {
+            if (confirm('이 광고매물을 휴지통으로 이동하시겠습니까?')) {
                 ads = ads.filter(a => a.id !== id);
                 renderAdsList();
 
