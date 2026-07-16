@@ -445,6 +445,10 @@
                                 class="text-blue-600 font-bold text-sm px-4 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 shadow-sm active:scale-95 transition-all">
                                 복사
                             </button>
+                            <button id="ad-editor-complete-btn" onclick="completeAdFromEditor()"
+                                class="text-green-600 font-bold text-sm px-4 py-1.5 rounded-lg border border-green-200 bg-green-50 hover:bg-green-100 shadow-sm active:scale-95 transition-all">
+                                계약완료
+                            </button>
                             <button onclick="saveCurrentAd(true)"
                                 class="text-orange-600 font-bold text-sm px-4 py-1.5 rounded-lg border border-orange-200 bg-orange-50 hover:bg-orange-100 shadow-sm active:scale-95 transition-all">
                                 저장
@@ -1903,6 +1907,15 @@
             const ad = ads.find(a => a.id === id);
             if (!ad) return;
 
+            const completeBtn = document.getElementById('ad-editor-complete-btn');
+            if (completeBtn) {
+                if (ad.data && ad.data.status === 'completed') {
+                    completeBtn.classList.add('hidden');
+                } else {
+                    completeBtn.classList.remove('hidden');
+                }
+            }
+
             document.getElementById('ads-list-view').classList.add('hidden');
             document.getElementById('ads-editor-view').classList.remove('hidden');
             document.getElementById('ad-editor-title').innerText = ad.category;
@@ -2624,9 +2637,9 @@
         }
 
         async function completeAdStatus(id) {
-            if (!confirm('해당 매물을 계약완료 처리하시겠습니까? (매물번호가 초기화되고 완료 탭으로 이동합니다)')) return;
+            if (!confirm('해당 매물을 계약완료 처리하시겠습니까? (매물번호가 초기화되고 완료 탭으로 이동합니다)')) return false;
             const adIndex = ads.findIndex(a => a.id === id);
-            if (adIndex === -1) return;
+            if (adIndex === -1) return false;
             
             const updatedAd = {
                 ...ads[adIndex],
@@ -2646,8 +2659,19 @@
             if (res && res.success) {
                 ads[adIndex] = { ...updatedAd, updated_at: new Date().toISOString() };
                 renderAdsList();
+                return true;
             } else {
                 alert('계약완료 처리에 실패했습니다.');
+                return false;
+            }
+        }
+
+        async function completeAdFromEditor() {
+            const id = document.getElementById('editor-ad-id').value;
+            if (!id) return;
+            const success = await completeAdStatus(id);
+            if (success) {
+                closeAdEditor();
             }
         }
 
