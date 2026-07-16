@@ -2503,10 +2503,10 @@
         async function saveCurrentAd(manualSave = false) {
             const id = document.getElementById('editor-ad-id').value;
             const category = document.getElementById('editor-ad-category').value;
-            if (!id) return;
+            if (!id) { alert('ERROR: id is missing!'); return; }
 
             const adIndex = ads.findIndex(a => a.id === id);
-            if (adIndex === -1) return;
+            if (adIndex === -1) { alert('ERROR: adIndex is -1. ads length: ' + ads.length + ', id: ' + id); return; }
 
             const dynamicData = { ...(ads[adIndex].data || {}) };
             const inputs = document.querySelectorAll('[id^="ad-field-"]');
