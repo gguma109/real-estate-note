@@ -2046,7 +2046,7 @@
             document.getElementById('notes-list').innerHTML = '';
             document.getElementById('notes-empty').classList.add('hidden');
 
-            const data = await fetchWithAuth('/api/notes');
+            const data = await fetchWithAuth('/api/notes?category=management');
             document.getElementById('loadingIndicatorNotes').classList.add('hidden');
 
             if (data && Array.isArray(data)) {
@@ -2208,7 +2208,7 @@
             notes[noteIndex].is_shared = is_shared;
             notes[noteIndex].updated_at = new Date().toISOString();
 
-            const notePayload = { ...notes[noteIndex] };
+            const notePayload = { ...notes[noteIndex], category: 'management' };
 
             const res = await fetchWithAuth('/api/notes', {
                 method: 'POST',

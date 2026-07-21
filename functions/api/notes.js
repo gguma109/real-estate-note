@@ -13,10 +13,16 @@ export async function onRequestGet(context) {
         try {
             await env.DB.prepare("ALTER TABLE notes ADD COLUMN deleted_at TEXT").run();
         } catch(e){}
+        try {
+            await env.DB.prepare("ALTER TABLE notes ADD COLUMN category TEXT DEFAULT 'brokerage'").run();
+        } catch(e){}
+
+        const url = new URL(request.url);
+        const category = url.searchParams.get('category') || 'brokerage';
 
         const { results } = await env.DB.prepare(
-            "SELECT * FROM notes WHERE user_id = ? AND IFNULL(is_deleted, 0) = 0 ORDER BY updated_at DESC"
-        ).bind(token).all();
+            "SELECT * FROM notes WHERE user_id = ? AND IFNULL(category, 'brokerage') = ? AND IFNULL(is_deleted, 0) = 0 ORDER BY updated_at DESC"
+        ).bind(token, category).all();
 
         return new Response(JSON.stringify(results), {
             headers: { 'Content-Type': 'application/json' }
@@ -49,15 +55,19 @@ export async function onRequestPost(context) {
         try {
             await env.DB.prepare("ALTER TABLE notes ADD COLUMN deleted_at TEXT").run();
         } catch(e){}
+        try {
+            await env.DB.prepare("ALTER TABLE notes ADD COLUMN category TEXT DEFAULT 'brokerage'").run();
+        } catch(e){}
 
         const id = body.id && !body.id.startsWith('temp_') ? body.id : crypto.randomUUID();
+        const category = body.category || 'brokerage';
 
         await env.DB.prepare(`
             INSERT OR REPLACE INTO notes 
-            (id, user_id, title, content, is_shared, updated_at)
-            VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
+            (id, user_id, title, content, is_shared, category, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP)
         `).bind(
-            id, token, body.title || '새 노트', body.content || '', body.is_shared ? 1 : 0
+            id, token, body.title || '새 노트', body.content || '', body.is_shared ? 1 : 0, category
         ).run();
 
         return new Response(JSON.stringify({ success: true, id }), {
