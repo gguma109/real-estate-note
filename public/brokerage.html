@@ -69,6 +69,13 @@
             padding-right: 1.5rem !important;
         }
 
+        /* Request Type Specific Styles */
+        .request-type-seller .show-only-buyer { display: none !important; }
+        .request-type-buyer .show-only-seller { display: none !important; }
+        
+        .request-type-seller .label-for-buyer { display: none !important; }
+        .request-type-buyer .label-for-seller { display: none !important; }
+
         /* 인쇄 최적화 */
         @media print {
             .no-print {
@@ -254,6 +261,18 @@
                 
                 <!-- Rental List View -->
                 <div id="rental-list-view" class="flex-1 overflow-y-auto p-4 relative bg-gray-50 pb-24">
+                    <!-- Rental Sub-tabs -->
+                    <div class="flex bg-gray-200/60 p-1 rounded-xl mb-4 max-w-sm mx-auto shadow-sm border border-gray-100 no-print">
+                        <button onclick="switchRentalSubTab('seller')" id="subtab-rental-seller" 
+                            class="flex-1 py-2 text-center text-xs font-black rounded-lg transition-all bg-white text-darkgreen shadow-sm">
+                            매도·임대 (물건)
+                        </button>
+                        <button onclick="switchRentalSubTab('buyer')" id="subtab-rental-buyer" 
+                            class="flex-1 py-2 text-center text-xs font-bold rounded-lg transition-all text-gray-500 hover:text-gray-700">
+                            매수·임차 (손님)
+                        </button>
+                    </div>
+
                     <div id="loadingIndicator" class="hidden justify-center items-center py-10 flex-col gap-3">
                         <div class="spinner"></div>
                         <p class="text-xs text-gray-500 font-bold">클라우드에서 데이터를 불러오는 중...</p>
@@ -561,6 +580,7 @@
         let isAdCompletedTab = false;
         let rentals = [];
         let syncTimeout = null;
+        let currentRentalSubTab = 'seller';
 
         document.addEventListener('DOMContentLoaded', () => {
 
@@ -744,6 +764,24 @@
             }
         }
 
+        function switchRentalSubTab(subTab) {
+            currentRentalSubTab = subTab;
+            const sellerBtn = document.getElementById('subtab-rental-seller');
+            const buyerBtn = document.getElementById('subtab-rental-buyer');
+
+            const activeSubClass = "flex-1 py-2 text-center text-xs font-black rounded-lg transition-all bg-white text-darkgreen shadow-sm";
+            const inactiveSubClass = "flex-1 py-2 text-center text-xs font-bold rounded-lg transition-all text-gray-500 hover:text-gray-700";
+
+            if (subTab === 'seller') {
+                if (sellerBtn) sellerBtn.className = activeSubClass;
+                if (buyerBtn) buyerBtn.className = inactiveSubClass;
+            } else {
+                if (sellerBtn) sellerBtn.className = inactiveSubClass;
+                if (buyerBtn) buyerBtn.className = activeSubClass;
+            }
+            renderRentals();
+        }
+
         async function fetchWithAuth(url, options = {}) {
             const token = localStorage.getItem('auth_token');
             if (!token) return null;
@@ -838,7 +876,8 @@
                 business_name: '', exclusive_area: '', supply_area: '',
                 land_area: '', total_floor_area: '', sale_price: '', current_loan: '',
                 completion_date: '', building_config: '', total_deposit: '', total_monthly_income: '', loan_interest_rate: '',
-                status: '진행중'
+                status: '진행중',
+                request_type: currentRentalSubTab
             };
 
             // 낙관적 UI 업데이트: 먼저 화면에 표시하고 통신
@@ -927,14 +966,19 @@
 
             if (!indicator.classList.contains('hidden')) return; // 로딩중이면 무시
 
-            if (!rentals || rentals.length === 0) {
+            const filteredRentals = rentals.filter(r => {
+                const reqType = r.request_type || 'seller';
+                return reqType === currentRentalSubTab;
+            });
+
+            if (!filteredRentals || filteredRentals.length === 0) {
                 list.innerHTML = '';
                 empty.classList.remove('hidden');
                 return;
             }
             empty.classList.add('hidden');
 
-            list.innerHTML = rentals.map(r => {
+            list.innerHTML = filteredRentals.map(r => {
                 const icons = {
                     '원룸': '🏠', '1.5룸': '🏡', '투룸': '🏢', '쓰리룸': '🏢',
                     '아파트': '🏢', '빌라': '🏘️', '주택': '🏠', '상가': '🏬',
@@ -947,9 +991,16 @@
                 const dateObj = r.date ? new Date(r.date) : (r.created_at ? new Date(r.created_at) : new Date());
                 const dateStr = `${dateObj.getMonth() + 1}월 ${dateObj.getDate()}일`;
 
-                const addressPart = r.address ? `${r.address} ${r.room || ''}`.trim() : '주소 미입력';
-                const businessPart = r.business_name ? `(${r.business_name})` : '';
-                const title = `${addressPart} ${businessPart}`.trim() || '정보 미입력 매물';
+                let title = '';
+                if (r.request_type === 'buyer') {
+                    const clientPart = r.business_name ? `${r.business_name}`.trim() : '고객명 미입력';
+                    const prefPart = (r.address || r.room) ? ` - 희망: ${r.address || ''} ${r.room || ''}`.trim() : '';
+                    title = `${clientPart}${prefPart}`.trim() || '정보 미입력 고객';
+                } else {
+                    const addressPart = r.address ? `${r.address} ${r.room || ''}`.trim() : '주소 미입력';
+                    const businessPart = r.business_name ? `(${r.business_name})` : '';
+                    title = `${addressPart} ${businessPart}`.trim() || '정보 미입력 매물';
+                }
                 let priceParts = [];
                 if (r.sale_price) priceParts.push(`매매 ${r.sale_price}`);
                 if (r.deposit) priceParts.push(`보 ${r.deposit}`);
@@ -994,7 +1045,7 @@
             const content = document.getElementById('rental-editor-content');
             
             content.innerHTML = `
-                <div class="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8" data-id="${r.id}">
+                <div class="rental-editor-container bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8 request-type-${r.request_type || 'seller'}" data-id="${r.id}">
                     <div class="flex justify-between items-center bg-gray-50 border-b border-gray-100 p-3 pl-4">
                         <div class="flex items-center gap-2">
                             <span class="text-lg">🏷️</span>
@@ -1011,6 +1062,11 @@
                                 <option value="기타" ${r.type === '기타' ? 'selected' : ''}>기타</option>
                             </select>
                             <div class="h-4 w-[1px] bg-gray-200 mx-1"></div>
+                            <select class="rental-input rental-select text-[0.8rem] font-bold text-gray-600 bg-transparent outline-none py-1" data-field="request_type">
+                                <option value="seller" ${r.request_type !== 'buyer' ? 'selected' : ''}>매도·임대 (물건)</option>
+                                <option value="buyer" ${r.request_type === 'buyer' ? 'selected' : ''}>매수·임차 (손님)</option>
+                            </select>
+                            <div class="h-4 w-[1px] bg-gray-200 mx-1"></div>
                             <select class="rental-input rental-select text-[0.8rem] font-bold text-gray-600 bg-transparent outline-none py-1" data-field="status">
                                 <option value="진행중" ${r.status === '진행중' ? 'selected' : ''}>진행중</option>
                                 <option value="계약완료" ${r.status === '계약완료' ? 'selected' : ''}>계약완료</option>
@@ -1018,7 +1074,7 @@
                             </select>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="convertRentalToAd('${r.id}')" class="text-blue-600 hover:text-white hover:bg-blue-600 font-bold text-xs px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 shadow-sm active:scale-95 transition-all">광고로 등록</button>
+                            <button onclick="convertRentalToAd('${r.id}')" class="show-only-seller text-blue-600 hover:text-white hover:bg-blue-600 font-bold text-xs px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 shadow-sm active:scale-95 transition-all">광고로 등록</button>
                             <button onclick="copyToClipboard('${r.id}')" class="text-darkgreen hover:text-white hover:bg-darkgreen font-bold text-xs px-3 py-1.5 rounded-lg border border-green-100 bg-green-50 shadow-sm active:scale-95 transition-all">카톡 복사</button>
                             <button onclick="deleteRental('${r.id}')" class="text-red-400 hover:text-red-500 font-bold text-xs px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 shadow-sm active:scale-95 transition-all">의뢰서 삭제</button>
                         </div>
@@ -1031,73 +1087,95 @@
                                     <input type="date" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-700 font-medium" data-field="date" value="${r.date || ''}">
                                 </div>
                                 <div class="flex-1">
-                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">입주 가능일</label>
+                                    <label class="label-for-seller block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">입주 가능일</label>
+                                    <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">입주 희망일</label>
                                     <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="즉시/협의 등" data-field="movein" value="${r.movein || ''}">
                                 </div>
                             </div>
-                            <div class="col-span-2">
+                            <!-- Seller 주소/상호명/호실 -->
+                            <div class="col-span-2 show-only-seller">
                                 <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">주소 및 상호명/호수</label>
                                 <div class="flex gap-2 mb-2">
-                                    <input type="text" class="rental-input flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800" placeholder="상세 주소" data-field="address" value="${r.address || ''}">
+                                     <input type="text" class="rental-input flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800" placeholder="상세 주소" data-field="address" value="${r.address || ''}">
                                 </div>
                                 <div class="flex gap-2">
-                                    <input type="text" class="rental-input flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800" placeholder="상호명" data-field="business_name" value="${r.business_name || ''}">
-                                    <input type="text" class="rental-input w-24 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800 text-center" placeholder="호실" data-field="room" value="${r.room || ''}">
+                                     <input type="text" class="rental-input flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800" placeholder="상호명" data-field="business_name" value="${r.business_name || ''}">
+                                     <input type="text" class="rental-input w-24 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800 text-center" placeholder="호실" data-field="room" value="${r.room || ''}">
+                                </div>
+                            </div>
+                            <!-- Buyer 희망지역/고객명/희망조건 -->
+                            <div class="col-span-2 show-only-buyer">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">희망 지역 및 고객명/용도</label>
+                                <div class="flex gap-2 mb-2">
+                                     <input type="text" class="rental-input flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800" placeholder="희망 주소 또는 지역" data-field="address" value="${r.address || ''}">
+                                </div>
+                                <div class="flex gap-2">
+                                     <input type="text" class="rental-input flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800" placeholder="의뢰인 이름 (고객명)" data-field="business_name" value="${r.business_name || ''}">
+                                     <input type="text" class="rental-input w-24 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-gray-800 text-center" placeholder="희망 호실/층/조건" data-field="room" value="${r.room || ''}">
                                 </div>
                             </div>
                             <div class="col-span-1">
-                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">전용면적</label>
+                                <label class="label-for-seller block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">전용면적</label>
+                                <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">희망 전용면적</label>
                                 <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 25.4㎡ / 7.7평" data-field="exclusive_area" value="${r.exclusive_area || ''}">
                             </div>
                             <div class="col-span-1">
-                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">공급면적</label>
+                                <label class="label-for-seller block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">공급면적</label>
+                                <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">희망 공급면적</label>
                                 <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 33.1㎡ / 10평" data-field="supply_area" value="${r.supply_area || ''}">
                             </div>
                             <div class="col-span-1 area-field ${['주택', '상가', '건물'].includes(r.type) ? '' : 'hidden'}">
-                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">대지면적 (㎡)</label>
+                                <label class="label-for-seller block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">대지면적 (㎡)</label>
+                                <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">희망 대지면적 (㎡)</label>
                                 <input type="text" inputmode="decimal" class="rental-input area-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="0.0" data-field="land_area" value="${r.land_area || ''}">
                             </div>
                             <div class="col-span-1 area-field ${['주택', '상가', '건물'].includes(r.type) ? '' : 'hidden'}">
-                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">연면적 (㎡)</label>
+                                <label class="label-for-seller block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">연면적 (㎡)</label>
+                                <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">희망 연면적 (㎡)</label>
                                 <input type="text" inputmode="decimal" class="rental-input area-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="0.0" data-field="total_floor_area" value="${r.total_floor_area || ''}">
                             </div>
                             <div class="col-span-2 grid grid-cols-2 gap-3 pt-1 border-t border-gray-100 mt-1">
                                 <div class="col-span-1">
-                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">보증금 (만원)</label>
+                                    <label class="label-for-seller block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">보증금 (만원)</label>
+                                    <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">희망 보증금 (만원)</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">보</span>
                                         <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-black text-gray-800 pl-8 text-right" placeholder="0.0" data-field="deposit" value="${r.deposit || ''}">
                                     </div>
                                 </div>
                                 <div class="col-span-1">
-                                    <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">권리금 (만원)</label>
+                                    <label class="label-for-seller block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">권리금 (만원)</label>
+                                    <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">희망 권리금 (만원)</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">권</span>
                                         <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-black text-gray-800 pl-8 text-right" placeholder="0.0" data-field="premium" value="${r.premium || ''}">
                                     </div>
                                 </div>
                                 <div class="col-span-1">
-                                    <label class="block text-[0.8rem] font-bold text-green-700 mb-1 ml-1 tracking-tight">월세 (만원)</label>
+                                    <label class="label-for-seller block text-[0.8rem] font-bold text-green-700 mb-1 ml-1 tracking-tight">월세 (만원)</label>
+                                    <label class="label-for-buyer block text-[0.8rem] font-bold text-green-700 mb-1 ml-1 tracking-tight">희망 월세 (만원)</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-3 text-green-600/50 text-xs font-black select-none pointer-events-none">월</span>
                                         <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-green-50/50 border border-green-200 focus:border-green-600 focus:ring-1 focus:ring-green-600 rounded-lg text-[0.95rem] font-black text-green-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="rent" value="${r.rent || ''}">
                                     </div>
                                 </div>
                                 <div class="col-span-1">
-                                    <label class="block text-[0.8rem] font-bold text-blue-700 mb-1 ml-1 tracking-tight">년세 (만원)</label>
+                                    <label class="label-for-seller block text-[0.8rem] font-bold text-blue-700 mb-1 ml-1 tracking-tight">년세 (만원)</label>
+                                    <label class="label-for-buyer block text-[0.8rem] font-bold text-blue-700 mb-1 ml-1 tracking-tight">희망 년세 (만원)</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-3 text-blue-600/50 text-xs font-black select-none pointer-events-none">년</span>
                                         <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-blue-50/50 border border-blue-200 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-lg text-[0.95rem] font-black text-blue-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="yearly_rent" value="${r.yearly_rent || ''}">
                                     </div>
                                 </div>
                                 <div class="col-span-1">
-                                    <label class="block text-[0.8rem] font-bold text-red-700 mb-1 ml-1 tracking-tight">매매가 (만원)</label>
+                                    <label class="label-for-seller block text-[0.8rem] font-bold text-red-700 mb-1 ml-1 tracking-tight">매매가 (만원)</label>
+                                    <label class="label-for-buyer block text-[0.8rem] font-bold text-red-700 mb-1 ml-1 tracking-tight">희망 매매가 (만원)</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-3 text-red-600/50 text-xs font-black select-none pointer-events-none">매</span>
                                         <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-red-50/50 border border-red-200 focus:border-red-600 focus:ring-1 focus:ring-red-600 rounded-lg text-[0.95rem] font-black text-red-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="sale_price" value="${r.sale_price || ''}">
                                     </div>
                                 </div>
-                                <div class="col-span-1">
+                                <div class="col-span-1 show-only-seller">
                                     <label class="block text-[0.8rem] font-bold text-orange-700 mb-1 ml-1 tracking-tight">현 융자금액 (만원)</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-3 text-orange-600/50 text-xs font-black select-none pointer-events-none">융</span>
@@ -1107,7 +1185,7 @@
                             </div>
                             
                             <!-- 건물 매매 전용 투자 분석 항목 -->
-                            <div class="col-span-2 grid grid-cols-2 gap-3 pt-3 border-t-2 border-dashed border-gray-200 mt-2 building-field ${['건물', '상가'].includes(r.type) ? '' : 'hidden'}">
+                            <div class="col-span-2 grid grid-cols-2 gap-3 pt-3 border-t-2 border-dashed border-gray-200 mt-2 building-field show-only-seller ${['건물', '상가'].includes(r.type) ? '' : 'hidden'}">
                                 <div class="col-span-2 bg-indigo-50 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-md mb-1 inline-block w-max">
                                     📊 건물/상가 수익률 분석표
                                 </div>
@@ -1190,11 +1268,11 @@
                                 <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">옵션</label>
                                 <input type="text" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium" placeholder="에어컨, 세탁기 등" data-field="options" value="${r.options || ''}">
                             </div>
-                            <div class="col-span-1 pt-1 border-t border-gray-100 mt-1">
+                            <div class="col-span-1 pt-1 border-t border-gray-100 mt-1 show-only-seller">
                                 <label class="block text-[0.7rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">1층 공동현관 비번</label>
                                 <input type="text" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium" placeholder="예: *1234#" data-field="common_pwd" value="${r.common_pwd || ''}">
                             </div>
-                            <div class="col-span-1 pt-1 border-t border-gray-100 mt-1">
+                            <div class="col-span-1 pt-1 border-t border-gray-100 mt-1 show-only-seller">
                                 <label class="block text-[0.7rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">세대 비밀번호</label>
                                 <input type="text" class="rental-input w-full px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium" placeholder="예: 4321*" data-field="unit_pwd" value="${r.unit_pwd || ''}">
                             </div>
@@ -1203,7 +1281,8 @@
                                 <textarea rows="2" class="rental-input w-full p-3 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm text-gray-800 font-medium resize-none" placeholder="기타 특이사항 입력" data-field="special_notes">${r.special_notes || ''}</textarea>
                             </div>
                             <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
-                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">전화번호</label>
+                                <label class="label-for-seller block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">전화번호</label>
+                                <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">의뢰인 연락처</label>
                                 <div class="flex items-center gap-2">
                                     <input type="tel" class="rental-input flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-bold text-primary tracking-widest leading-none h-[44px]" placeholder="010-0000-0000" data-field="phone" value="${r.phone || ''}">
                                     <a href="tel:${r.phone || ''}" id="phone-call-btn" class="flex items-center justify-center w-[44px] h-[44px] bg-darkgreen text-white rounded-lg border border-darkgreen hover:bg-green-700 transition-colors shadow-sm ${!r.phone ? 'opacity-50 pointer-events-none' : ''}" onclick="if(!this.getAttribute('href').replace('tel:', '')) return false;" title="전화걸기">
@@ -1299,6 +1378,22 @@
                         }
                         value = formattedValue;
                     }
+
+                    if (field === 'request_type') {
+                        const container = editorEl.querySelector('.rental-editor-container');
+                        if (container) {
+                            container.className = `rental-editor-container bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8 request-type-${value}`;
+                        }
+                    }
+
+                    if (['address', 'business_name', 'room'].includes(field)) {
+                        editorEl.querySelectorAll(`[data-field="${field}"]`).forEach(input => {
+                            if (input !== e.target) {
+                                input.value = value;
+                            }
+                        });
+                    }
+
                     updateRental(id, field, value);
                 });
             });
@@ -1426,25 +1521,48 @@
             const r = rentals.find(item => item.id === id);
             if (!r) return;
 
-            const premiumStr = r.premium ? `\n- 권리금: ${r.premium}만원` : '';
-            const rentStr = r.rent ? `\n- 월세: ${r.rent}만원` : (r.yearly_rent ? `\n- 년세: ${r.yearly_rent}만원` : '');
-            const maintenanceStr = r.maintenance ? `\n- 관리비: ${r.maintenance}만원` : '';
-            const addressStr = r.address ? `\n- 위치: ${r.address} ${r.room || ''}` : '';
-            const areaStr = r.exclusive_area ? `\n- 면적: ${r.exclusive_area}` : '';
-            const structureStr = r.structure ? `\n- 구조: ${r.structure}` : '';
-            const optionsStr = r.options ? `\n- 옵션: ${r.options}` : '';
-            const noteStr = r.special_notes ? `\n- 특이사항: ${r.special_notes}` : '';
+            let text = '';
+            if (r.request_type === 'buyer') {
+                const clientName = r.business_name ? `${r.business_name}` : '미상';
+                const typeStr = r.type ? `\n- 희망 종류: ${r.type}` : '';
+                const addressStr = r.address ? `\n- 희망 지역: ${r.address} ${r.room || ''}` : '';
+                const moveinStr = r.movein ? `\n- 입주 희망일: ${r.movein}` : '';
+                const phoneStr = r.phone ? `\n- 연락처: ${r.phone}` : '';
+                
+                let budgetParts = [];
+                if (r.sale_price) budgetParts.push(`매매 ${r.sale_price}만원`);
+                if (r.deposit) budgetParts.push(`보증금 ${r.deposit}만원`);
+                if (r.rent) budgetParts.push(`월세 ${r.rent}만원`);
+                if (r.yearly_rent) budgetParts.push(`년세 ${r.yearly_rent}만원`);
+                if (r.premium) budgetParts.push(`권리금 ${r.premium}만원`);
+                const budgetStr = budgetParts.length > 0 ? `\n- 희망 예산: ${budgetParts.join(' / ')}` : '';
+                
+                const structureStr = r.structure ? `\n- 희망 구조: ${r.structure}` : '';
+                const optionsStr = r.options ? `\n- 희망 옵션: ${r.options}` : '';
+                const noteStr = r.special_notes ? `\n- 특이사항: ${r.special_notes}` : '';
+                
+                text = `[중개 의뢰서 - 매수/임차 희망 고객]\n- 고객명: ${clientName}${typeStr}${addressStr}${budgetStr}${moveinStr}${structureStr}${optionsStr}${noteStr}${phoneStr}\n\n좋은 매물 매칭 부탁드립니다. 😊`;
+            } else {
+                const premiumStr = r.premium ? `\n- 권리금: ${r.premium}만원` : '';
+                const rentStr = r.rent ? `\n- 월세: ${r.rent}만원` : (r.yearly_rent ? `\n- 년세: ${r.yearly_rent}만원` : '');
+                const maintenanceStr = r.maintenance ? `\n- 관리비: ${r.maintenance}만원` : '';
+                const addressStr = r.address ? `\n- 위치: ${r.address} ${r.room || ''}` : '';
+                const areaStr = r.exclusive_area ? `\n- 면적: ${r.exclusive_area}` : '';
+                const structureStr = r.structure ? `\n- 구조: ${r.structure}` : '';
+                const optionsStr = r.options ? `\n- 옵션: ${r.options}` : '';
+                const noteStr = r.special_notes ? `\n- 특이사항: ${r.special_notes}` : '';
 
-            let buildingStr = '';
-            if (['건물', '상가'].includes(r.type)) {
-                const salePrice = parseFloat(r.sale_price) || 0;
-                const loan = parseFloat(r.current_loan) || 0;
-                const totalDeposit = parseFloat(r.total_deposit) || 0;
-                const actualInv = salePrice - loan - totalDeposit;
-                buildingStr = `\n\n[📊 수익률 분석]\n- 준공일: ${r.completion_date || '-'}\n- 세대구성: ${r.building_config || '-'}\n- 총보증금: ${r.total_deposit || 0}만원\n- 실투자금: ${actualInv}만원\n- 총월수입: ${r.total_monthly_income || 0}만원\n- 수익률(예상): 현장 문의`;
+                let buildingStr = '';
+                if (['건물', '상가'].includes(r.type)) {
+                    const salePrice = parseFloat(r.sale_price) || 0;
+                    const loan = parseFloat(r.current_loan) || 0;
+                    const totalDeposit = parseFloat(r.total_deposit) || 0;
+                    const actualInv = salePrice - loan - totalDeposit;
+                    buildingStr = `\n\n[📊 수익률 분석]\n- 준공일: ${r.completion_date || '-'}\n- 세대구성: ${r.building_config || '-'}\n- 총보증금: ${r.total_deposit || 0}만원\n- 실투자금: ${actualInv}만원\n- 총월수입: ${r.total_monthly_income || 0}만원\n- 수익률(예상): 현장 문의`;
+                }
+
+                text = `[${r.type} 매물정보]\n- 상태: ${r.status || '진행중'}\n- 가격: 보증금 ${r.deposit || 0}만원${rentStr}${premiumStr}${maintenanceStr}${addressStr}${areaStr}${structureStr}${optionsStr}${noteStr}${buildingStr}\n\n문의 부탁드립니다. 😊`;
             }
-
-            const text = `[${r.type} 매물정보]\n- 상태: ${r.status || '진행중'}\n- 가격: 보증금 ${r.deposit || 0}만원${rentStr}${premiumStr}${maintenanceStr}${addressStr}${areaStr}${structureStr}${optionsStr}${noteStr}${buildingStr}\n\n문의 부탁드립니다. 😊`;
 
             const success = await copyTextToClipboard(text);
             if (success) {

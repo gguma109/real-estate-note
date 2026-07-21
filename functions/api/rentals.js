@@ -21,8 +21,10 @@ export async function onRequestGet(context) {
     if (!token) token = 'mock_user_123';
 
     try {
-        
-        
+        try {
+            await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN request_type TEXT DEFAULT 'seller'").run();
+        } catch (e) {}
+
         const { results } = await env.JEJU_DB.prepare(
             "SELECT * FROM rentals WHERE user_id = ? ORDER BY created_at DESC"
         ).bind(token).all();
@@ -53,13 +55,18 @@ export async function onRequestPost(context) {
             "INSERT OR IGNORE INTO users (id, email) VALUES (?, ?)"
         ).bind(token, body.email || `user_${token}@placeholder.com`).run();
 
+        // Ensure column exists
+        try {
+            await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN request_type TEXT DEFAULT 'seller'").run();
+        } catch (e) {}
+
         // Upsert rental (Insert or Update if ID exists)
         const id = body.id && !body.id.startsWith('temp_') ? body.id : crypto.randomUUID();
 
         await env.JEJU_DB.prepare(`
             INSERT OR REPLACE INTO rentals 
-            (id, user_id, type, date, movein, address, room, deposit, premium, rent, yearly_rent, maintenance, inc_internet, inc_tv, inc_water, structure, options, special_notes, phone, common_pwd, unit_pwd, business_name, exclusive_area, supply_area, land_area, total_floor_area, sale_price, current_loan, completion_date, building_config, total_deposit, total_monthly_income, loan_interest_rate, status)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, user_id, type, date, movein, address, room, deposit, premium, rent, yearly_rent, maintenance, inc_internet, inc_tv, inc_water, structure, options, special_notes, phone, common_pwd, unit_pwd, business_name, exclusive_area, supply_area, land_area, total_floor_area, sale_price, current_loan, completion_date, building_config, total_deposit, total_monthly_income, loan_interest_rate, status, request_type)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             id, token, body.type, body.date, body.movein, body.address, body.room,
             body.deposit, body.premium, body.rent, body.yearly_rent, body.maintenance,
@@ -68,7 +75,7 @@ export async function onRequestPost(context) {
             body.business_name, body.exclusive_area, body.supply_area,
             body.land_area, body.total_floor_area, body.sale_price, body.current_loan,
             body.completion_date, body.building_config, body.total_deposit, body.total_monthly_income, body.loan_interest_rate,
-            body.status || '진행중'
+            body.status || '진행중', body.request_type || 'seller'
         ).run();
 
         return new Response(JSON.stringify({ success: true, id }), {
