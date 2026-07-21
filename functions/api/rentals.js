@@ -90,7 +90,7 @@ export async function onRequestPost(context) {
         await env.JEJU_DB.prepare(`
             INSERT OR REPLACE INTO rentals 
             (id, user_id, type, date, movein, address, room, deposit, premium, rent, yearly_rent, maintenance, inc_internet, inc_tv, inc_water, structure, options, special_notes, phone, common_pwd, unit_pwd, business_name, exclusive_area, supply_area, land_area, total_floor_area, sale_price, current_loan, completion_date, building_config, total_deposit, total_monthly_income, loan_interest_rate, status, request_type, maintenance_detail, jeonse_price)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             id, token, body.type, body.date, body.movein, body.address, body.room,
             body.deposit, body.premium, body.rent, body.yearly_rent, body.maintenance,

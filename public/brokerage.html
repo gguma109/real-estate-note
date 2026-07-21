@@ -1011,7 +1011,9 @@
                 const icons = {
                     '원룸': '🏠', '1.5룸': '🏡', '투룸': '🏢', '쓰리룸': '🏢',
                     '아파트': '🏢', '빌라': '🏘️', '주택': '🏠', '상가': '🏬',
-                    '건물': '🏗️', '토지': '🌳', '기타': '📦'
+                    '건물': '🏗️', '토지': '🌳', '기타': '📦',
+                    '원.투.쓰리룸&공동주택': '🏠',
+                    '주택&건물 통매매': '🏘️'
                 };
                 const icon = icons[r.type] || '🏠';
                 const status = r.status || '진행중';
@@ -1086,15 +1088,10 @@
                         <div class="flex items-center gap-2">
                             <span class="text-lg">🏷️</span>
                             <select class="rental-input rental-select text-[0.9rem] font-black text-darkgreen bg-transparent outline-none py-1 tracking-wide" data-field="type">
-                                <option value="원룸" ${r.type === '원룸' ? 'selected' : ''}>원룸</option>
-                                <option value="1.5룸" ${r.type === '1.5룸' ? 'selected' : ''}>1.5룸</option>
-                                <option value="투룸" ${r.type === '투룸' ? 'selected' : ''}>투룸</option>
-                                <option value="쓰리룸" ${r.type === '쓰리룸' ? 'selected' : ''}>쓰리룸</option>
-                                <option value="아파트" ${r.type === '아파트' ? 'selected' : ''}>아파트</option>
-                                <option value="빌라" ${r.type === '빌라' ? 'selected' : ''}>빌라</option>
-                                <option value="주택" ${r.type === '주택' ? 'selected' : ''}>주택</option>
-                                <option value="상가" ${r.type === '상가' ? 'selected' : ''}>상가</option>
-                                <option value="건물" ${r.type === '건물' ? 'selected' : ''}>건물</option>
+                                <option value="원.투.쓰리룸&공동주택" ${r.type === '원.투.쓰리룸&공동주택' ? 'selected' : ''}>원/투룸/아파트/빌라 등</option>
+                                <option value="상가" ${r.type === '상가' ? 'selected' : ''}>상가/사무실</option>
+                                <option value="주택&건물 통매매" ${r.type === '주택&건물 통매매' ? 'selected' : ''}>단독주택/건물</option>
+                                <option value="토지" ${r.type === '토지' ? 'selected' : ''}>토지</option>
                                 <option value="기타" ${r.type === '기타' ? 'selected' : ''}>기타</option>
                             </select>
                             <div class="h-4 w-[1px] bg-gray-200 mx-1"></div>
@@ -1156,12 +1153,12 @@
                                 <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">희망 공급면적</label>
                                 <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 33.1㎡ / 10평" data-field="supply_area" value="${r.supply_area || ''}">
                             </div>
-                            <div class="col-span-1 area-field field-transition ${['주택', '상가', '건물'].includes(r.type) ? '' : 'collapsed'}">
+                            <div class="col-span-1 area-field field-transition ${['주택&건물 통매매', '상가'].includes(r.type) ? '' : 'collapsed'}">
                                 <label class="label-for-seller block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">대지면적 (㎡)</label>
                                 <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">희망 대지면적 (㎡)</label>
                                  <input type="text" inputmode="decimal" class="rental-input area-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="" data-field="land_area" value="${r.land_area || ''}">
                             </div>
-                            <div class="col-span-1 area-field field-transition ${['주택', '상가', '건물'].includes(r.type) ? '' : 'collapsed'}">
+                            <div class="col-span-1 area-field field-transition ${['주택&건물 통매매', '상가'].includes(r.type) ? '' : 'collapsed'}">
                                 <label class="label-for-seller block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">연면적 (㎡)</label>
                                 <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">희망 연면적 (㎡)</label>
                                 <input type="text" inputmode="decimal" class="rental-input area-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="" data-field="total_floor_area" value="${r.total_floor_area || ''}">
@@ -1225,7 +1222,7 @@
                             </div>
                             
                             <!-- 건물 매매 전용 투자 분석 항목 -->
-                            <div class="col-span-2 grid grid-cols-2 gap-3 pt-3 border-t-2 border-dashed border-gray-200 mt-2 building-field field-transition show-only-seller ${['건물', '상가'].includes(r.type) ? '' : 'collapsed'}">
+                            <div class="col-span-2 grid grid-cols-2 gap-3 pt-3 border-t-2 border-dashed border-gray-200 mt-2 building-field field-transition show-only-seller ${['주택&건물 통매매', '상가'].includes(r.type) ? '' : 'collapsed'}">
                                 <div class="col-span-2 bg-indigo-50 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-md mb-1 inline-block w-max">
                                     📊 건물/상가 수익률 분석표
                                 </div>
@@ -1367,14 +1364,14 @@
                     // '건물', '주택', '상가'일 때만 대지/연면적 노출
                     if (field === 'type') {
                         const areaFields = editorEl.querySelectorAll('.area-field');
-                        const isVisible = ['주택', '상가', '건물'].includes(value);
+                        const isVisible = ['주택&건물 통매매', '상가'].includes(value);
                         areaFields.forEach(f => {
                             if (isVisible) f.classList.remove('collapsed');
                             else f.classList.add('collapsed');
                         });
                         
                         const buildingFields = editorEl.querySelectorAll('.building-field');
-                        const isBuilding = ['상가', '건물'].includes(value);
+                        const isBuilding = ['주택&건물 통매매', '상가'].includes(value);
                         buildingFields.forEach(f => {
                             if (isBuilding) f.classList.remove('collapsed');
                             else f.classList.add('collapsed');
@@ -2905,10 +2902,11 @@
             if (!r) return;
 
             // 1. 카테고리 매핑
-            let adCategory = '상가/사무실';
-            if (['원룸', '1.5룸', '투룸', '쓰리룸', '아파트', '빌라'].includes(r.type)) adCategory = '원.투.쓰리룸&공동주택';
+            let adCategory = r.type || '기타';
+            if (['원룸', '1.5룸', '투룸', '쓰리룸', '아파트', '빌라', '원.투.쓰리룸&공동주택'].includes(r.type)) adCategory = '원.투.쓰리룸&공동주택';
             else if (r.type === '토지') adCategory = '토지';
-            else if (['주택', '건물'].includes(r.type)) adCategory = '주택&건물 통매매';
+            else if (['주택', '건물', '주택&건물 통매매'].includes(r.type)) adCategory = '주택&건물 통매매';
+            else if (r.type === '상가') adCategory = '상가';
             else if (r.type === '기타') adCategory = '기타';
 
             // 2. 가격 유형 매핑
