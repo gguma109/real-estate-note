@@ -1157,15 +1157,15 @@
                                     <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">희망 보증금 (만원)</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">보</span>
-                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-black text-gray-800 pl-8 text-right" placeholder="0.0" data-field="deposit" value="${r.deposit || ''}">
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-black text-gray-800 pl-8 text-right" placeholder="" data-field="deposit" value="${r.deposit || ''}">
                                     </div>
                                 </div>
-                                <div class="col-span-1">
+                                <div class="col-span-1 premium-field ${r.type === '상가' ? '' : 'hidden'}">
                                     <label class="label-for-seller block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">권리금 (만원)</label>
                                     <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">희망 권리금 (만원)</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">권</span>
-                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-black text-gray-800 pl-8 text-right" placeholder="0.0" data-field="premium" value="${r.premium || ''}">
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-black text-gray-800 pl-8 text-right" placeholder="" data-field="premium" value="${r.premium || ''}">
                                     </div>
                                 </div>
                                 <div class="col-span-1">
@@ -1173,7 +1173,7 @@
                                     <label class="label-for-buyer block text-[0.8rem] font-bold text-green-700 mb-1 ml-1 tracking-tight">희망 월세 (만원)</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-3 text-green-600/50 text-xs font-black select-none pointer-events-none">월</span>
-                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-green-50/50 border border-green-200 focus:border-green-600 focus:ring-1 focus:ring-green-600 rounded-lg text-[0.95rem] font-black text-green-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="rent" value="${r.rent || ''}">
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-green-50/50 border border-green-200 focus:border-green-600 focus:ring-1 focus:ring-green-600 rounded-lg text-[0.95rem] font-black text-green-700 pl-8 text-right drop-shadow-sm" placeholder="" data-field="rent" value="${r.rent || ''}">
                                     </div>
                                 </div>
                                 <div class="col-span-1">
@@ -1181,7 +1181,7 @@
                                     <label class="label-for-buyer block text-[0.8rem] font-bold text-blue-700 mb-1 ml-1 tracking-tight">희망 년세 (만원)</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-3 text-blue-600/50 text-xs font-black select-none pointer-events-none">년</span>
-                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-blue-50/50 border border-blue-200 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-lg text-[0.95rem] font-black text-blue-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="yearly_rent" value="${r.yearly_rent || ''}">
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-blue-50/50 border border-blue-200 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-lg text-[0.95rem] font-black text-blue-700 pl-8 text-right drop-shadow-sm" placeholder="" data-field="yearly_rent" value="${r.yearly_rent || ''}">
                                     </div>
                                 </div>
                                 <div class="col-span-1">
@@ -1189,14 +1189,22 @@
                                     <label class="label-for-buyer block text-[0.8rem] font-bold text-red-700 mb-1 ml-1 tracking-tight">희망 매매가 (만원)</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-3 text-red-600/50 text-xs font-black select-none pointer-events-none">매</span>
-                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-red-50/50 border border-red-200 focus:border-red-600 focus:ring-1 focus:ring-red-600 rounded-lg text-[0.95rem] font-black text-red-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="sale_price" value="${r.sale_price || ''}">
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-red-50/50 border border-red-200 focus:border-red-600 focus:ring-1 focus:ring-red-600 rounded-lg text-[0.95rem] font-black text-red-700 pl-8 text-right drop-shadow-sm" placeholder="" data-field="sale_price" value="${r.sale_price || ''}">
+                                    </div>
+                                </div>
+                                <div class="col-span-1">
+                                    <label class="label-for-seller block text-[0.8rem] font-bold text-indigo-700 mb-1 ml-1 tracking-tight">전세금 (만원)</label>
+                                    <label class="label-for-buyer block text-[0.8rem] font-bold text-indigo-700 mb-1 ml-1 tracking-tight">희망 전세금 (만원)</label>
+                                    <div class="relative flex items-center">
+                                        <span class="absolute left-3 text-indigo-600/50 text-xs font-black select-none pointer-events-none">전</span>
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-indigo-50/50 border border-indigo-200 focus:border-indigo-600 focus:ring-1 focus:ring-indigo-600 rounded-lg text-[0.95rem] font-black text-indigo-700 pl-8 text-right drop-shadow-sm" placeholder="" data-field="jeonse_price" value="${r.jeonse_price || ''}">
                                     </div>
                                 </div>
                                 <div class="col-span-1 show-only-seller">
                                     <label class="block text-[0.8rem] font-bold text-orange-700 mb-1 ml-1 tracking-tight">현 융자금액 (만원)</label>
                                     <div class="relative flex items-center">
                                         <span class="absolute left-3 text-orange-600/50 text-xs font-black select-none pointer-events-none">융</span>
-                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-orange-50/50 border border-orange-200 focus:border-orange-600 focus:ring-1 focus:ring-orange-600 rounded-lg text-[0.95rem] font-black text-orange-700 pl-8 text-right drop-shadow-sm" placeholder="0.0" data-field="current_loan" value="${r.current_loan || ''}">
+                                        <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-orange-50/50 border border-orange-200 focus:border-orange-600 focus:ring-1 focus:ring-orange-600 rounded-lg text-[0.95rem] font-black text-orange-700 pl-8 text-right drop-shadow-sm" placeholder="" data-field="current_loan" value="${r.current_loan || ''}">
                                     </div>
                                 </div>
                             </div>
@@ -1354,6 +1362,13 @@
                         const isBuilding = ['상가', '건물'].includes(value);
                         buildingFields.forEach(f => {
                             if (isBuilding) f.classList.remove('hidden');
+                            else f.classList.add('hidden');
+                        });
+
+                        const premiumFields = editorEl.querySelectorAll('.premium-field');
+                        const isPremiumVisible = value === '상가';
+                        premiumFields.forEach(f => {
+                            if (isPremiumVisible) f.classList.remove('hidden');
                             else f.classList.add('hidden');
                         });
                     }
@@ -2897,7 +2912,7 @@
                     room_no: r.room || '',
                     deposit: r.deposit || '',
                     rent: r.rent || (r.yearly_rent || ''),
-                    jeonse_price: (usageType === '전세') ? (r.deposit || '') : '',
+                    jeonse_price: r.jeonse_price || ((usageType === '전세') ? (r.deposit || '') : ''),
                     sale_price: r.sale_price || '',
                     premium: r.premium || '',
                     biz_name: r.business_name || '',

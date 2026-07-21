@@ -27,6 +27,9 @@ export async function onRequestGet(context) {
         try {
             await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN maintenance_detail TEXT").run();
         } catch (e) {}
+        try {
+            await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN jeonse_price TEXT").run();
+        } catch (e) {}
 
         const { results } = await env.JEJU_DB.prepare(
             "SELECT * FROM rentals WHERE user_id = ? ORDER BY created_at DESC"
@@ -65,14 +68,17 @@ export async function onRequestPost(context) {
         try {
             await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN maintenance_detail TEXT").run();
         } catch (e) {}
+        try {
+            await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN jeonse_price TEXT").run();
+        } catch (e) {}
 
         // Upsert rental (Insert or Update if ID exists)
         const id = body.id && !body.id.startsWith('temp_') ? body.id : crypto.randomUUID();
 
         await env.JEJU_DB.prepare(`
             INSERT OR REPLACE INTO rentals 
-            (id, user_id, type, date, movein, address, room, deposit, premium, rent, yearly_rent, maintenance, inc_internet, inc_tv, inc_water, structure, options, special_notes, phone, common_pwd, unit_pwd, business_name, exclusive_area, supply_area, land_area, total_floor_area, sale_price, current_loan, completion_date, building_config, total_deposit, total_monthly_income, loan_interest_rate, status, request_type, maintenance_detail)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            (id, user_id, type, date, movein, address, room, deposit, premium, rent, yearly_rent, maintenance, inc_internet, inc_tv, inc_water, structure, options, special_notes, phone, common_pwd, unit_pwd, business_name, exclusive_area, supply_area, land_area, total_floor_area, sale_price, current_loan, completion_date, building_config, total_deposit, total_monthly_income, loan_interest_rate, status, request_type, maintenance_detail, jeonse_price)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).bind(
             id, token, body.type, body.date, body.movein, body.address, body.room,
             body.deposit, body.premium, body.rent, body.yearly_rent, body.maintenance,
@@ -81,7 +87,7 @@ export async function onRequestPost(context) {
             body.business_name, body.exclusive_area, body.supply_area,
             body.land_area, body.total_floor_area, body.sale_price, body.current_loan,
             body.completion_date, body.building_config, body.total_deposit, body.total_monthly_income, body.loan_interest_rate,
-            body.status || '진행중', body.request_type || 'seller', body.maintenance_detail || ''
+            body.status || '진행중', body.request_type || 'seller', body.maintenance_detail || '', body.jeonse_price || ''
         ).run();
 
         return new Response(JSON.stringify({ success: true, id }), {
