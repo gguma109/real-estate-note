@@ -3094,7 +3094,7 @@
                 detailHtml = `
                     <div class="space-y-3">
                         <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">의뢰 분류</span><span class="font-black text-darkgreen">${item.request_type === 'buyer' ? '구해요 (매수/임차)' : '내놓아요 (매도/임대)'}</span></div>
-                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">매물 종류</span><span class="font-black text-gray-800">${item.type || '-'}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">매물 종류</span><span class="font-black text-gray-800">${item.property_type || '-'}</span></div>
                         <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">고객명/상호</span><span class="font-bold text-gray-800">${item.business_name || '-'}</span></div>
                         <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">연락처</span><span class="font-bold text-gray-800">${item.phone || '-'}</span></div>
                         <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">주소/희망지역</span><span class="font-bold text-gray-800">${item.address || '-'} ${item.room || ''}</span></div>

@@ -36,12 +36,12 @@ export async function onRequestGet(context) {
         try { settlements = (await env.JEJU_DB.prepare("SELECT *, 'settlement' as trash_type FROM settlements WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
 
         const allTrash = [
-            ...rentals.map(r => ({ ...r, type: r.type, title_hint: r.type, info: r.date, trash_type: 'rental' })),
-            ...ads.map(a => ({ ...a, title_hint: a.category, info: a.data, trash_type: 'ad' })),
-            ...notes.map(n => ({ ...n, title_hint: n.title, info: n.content, trash_type: 'note' })),
-            ...moveouts.map(m => ({ ...m, title_hint: m.tenant_name, info: m.address, trash_type: 'moveout' })),
-            ...gasMeters.map(g => ({ ...g, title_hint: g.building_name, info: g.reading_date, trash_type: 'gas_meter' })),
-            ...settlements.map(s => ({ ...s, title_hint: s.title, info: s.data, trash_type: 'settlement' }))
+            ...rentals.map(r => ({ ...r, type: 'rental', property_type: r.type, title_hint: r.type, info: r.date, trash_type: 'rental' })),
+            ...ads.map(a => ({ ...a, type: 'ad', title_hint: a.category, info: a.data, trash_type: 'ad' })),
+            ...notes.map(n => ({ ...n, type: 'note', title_hint: n.title, info: n.content, trash_type: 'note' })),
+            ...moveouts.map(m => ({ ...m, type: 'moveout', title_hint: m.tenant_name, info: m.address, trash_type: 'moveout' })),
+            ...gasMeters.map(g => ({ ...g, type: 'gas_meter', title_hint: g.building_name, info: g.reading_date, trash_type: 'gas_meter' })),
+            ...settlements.map(s => ({ ...s, type: 'settlement', title_hint: s.title, info: s.data, trash_type: 'settlement' }))
         ];
 
         // Sort by deleted_at descending
