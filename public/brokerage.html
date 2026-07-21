@@ -302,10 +302,16 @@
                             <span>◀</span> 뒤로
                         </button>
                         <div class="font-bold text-gray-800 text-sm">중개의뢰서 편집</div>
-                        <button onclick="handleRentalSaveClick()"
-                            class="text-darkgreen font-bold text-sm px-4 py-1.5 rounded-lg border border-green-200 bg-green-50 hover:bg-green-100 shadow-sm active:scale-95 transition-all">
-                            저장
-                        </button>
+                        <div class="flex gap-2">
+                            <button id="rental-editor-convert-btn" onclick="handleRentalConvertClick()"
+                                class="text-blue-600 font-bold text-sm px-4 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 shadow-sm active:scale-95 transition-all">
+                                광고로 등록
+                            </button>
+                            <button onclick="handleRentalSaveClick()"
+                                class="text-darkgreen font-bold text-sm px-4 py-1.5 rounded-lg border border-green-200 bg-green-50 hover:bg-green-100 shadow-sm active:scale-95 transition-all">
+                                저장
+                            </button>
+                        </div>
                     </div>
                     
                     <div id="rental-editor-content" class="p-4 flex-1 overflow-y-auto bg-white">
@@ -1042,6 +1048,15 @@
             document.getElementById('rental-list-view').classList.add('hidden');
             document.getElementById('rental-editor-view').classList.remove('hidden');
 
+            const convertBtn = document.getElementById('rental-editor-convert-btn');
+            if (convertBtn) {
+                if (r.request_type === 'buyer') {
+                    convertBtn.classList.add('hidden');
+                } else {
+                    convertBtn.classList.remove('hidden');
+                }
+            }
+
             const content = document.getElementById('rental-editor-content');
             
             content.innerHTML = `
@@ -1074,7 +1089,6 @@
                             </select>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="convertRentalToAd('${r.id}')" class="show-only-seller text-blue-600 hover:text-white hover:bg-blue-600 font-bold text-xs px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 shadow-sm active:scale-95 transition-all">광고로 등록</button>
                             <button onclick="copyToClipboard('${r.id}')" class="text-darkgreen hover:text-white hover:bg-darkgreen font-bold text-xs px-3 py-1.5 rounded-lg border border-green-100 bg-green-50 shadow-sm active:scale-95 transition-all">카톡 복사</button>
                             <button onclick="deleteRental('${r.id}')" class="text-red-400 hover:text-red-500 font-bold text-xs px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 shadow-sm active:scale-95 transition-all">의뢰서 삭제</button>
                         </div>
@@ -1236,12 +1250,17 @@
                                 </div>
                             </div>
 
-                            <div class="col-span-2 mt-2">
-                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">관리비 (만원)</label>
+                            <div class="col-span-1 mt-2">
+                                <label class="label-for-seller block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">관리비 (만원)</label>
+                                <label class="label-for-buyer block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">희망 관리비 (만원)</label>
                                 <div class="relative flex items-center">
                                     <span class="absolute left-3 text-gray-400 text-xs font-black select-none pointer-events-none">관</span>
                                     <input type="text" inputmode="decimal" class="rental-input money-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-[0.95rem] font-black text-gray-800 pl-8 text-right" placeholder="0.0" data-field="maintenance" value="${r.maintenance || ''}">
                                 </div>
+                            </div>
+                            <div class="col-span-1 mt-2">
+                                <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">관리비 세부내역</label>
+                                <input type="text" class="rental-input w-full p-2.5 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-[0.95rem] font-medium text-gray-800" placeholder="예: 전기, 수도, 가스 등" data-field="maintenance_detail" value="${r.maintenance_detail || ''}">
                             </div>
                             <div class="col-span-2 pt-1 border-t border-gray-100 mt-1">
                                 <label class="block text-[0.8rem] font-bold text-gray-500 mb-2 ml-1 tracking-tight">관리비 포함 내역 (인/유/수)</label>
@@ -1384,6 +1403,14 @@
                         if (container) {
                             container.className = `rental-editor-container bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mb-8 request-type-${value}`;
                         }
+                        const convertBtn = document.getElementById('rental-editor-convert-btn');
+                        if (convertBtn) {
+                            if (value === 'buyer') {
+                                convertBtn.classList.add('hidden');
+                            } else {
+                                convertBtn.classList.remove('hidden');
+                            }
+                        }
                     }
 
                     if (['address', 'business_name', 'room'].includes(field)) {
@@ -1442,6 +1469,14 @@
             if(invEl) invEl.innerText = actualInvestment.toLocaleString() + '만원';
             if(netEl) netEl.innerText = Math.round(netMonthlyIncome).toLocaleString() + '만원';
             if(roiEl) roiEl.innerText = roi.toFixed(1) + '%';
+        }
+
+        function handleRentalConvertClick() {
+            const container = document.querySelector('#rental-editor-content [data-id]');
+            if (container) {
+                const id = container.getAttribute('data-id');
+                convertRentalToAd(id);
+            }
         }
 
         async function handleRentalSaveClick() {
@@ -1545,7 +1580,7 @@
             } else {
                 const premiumStr = r.premium ? `\n- 권리금: ${r.premium}만원` : '';
                 const rentStr = r.rent ? `\n- 월세: ${r.rent}만원` : (r.yearly_rent ? `\n- 년세: ${r.yearly_rent}만원` : '');
-                const maintenanceStr = r.maintenance ? `\n- 관리비: ${r.maintenance}만원` : '';
+                const maintenanceStr = r.maintenance ? `\n- 관리비: ${r.maintenance}만원${r.maintenance_detail ? ' (' + r.maintenance_detail + ')' : ''}` : '';
                 const addressStr = r.address ? `\n- 위치: ${r.address} ${r.room || ''}` : '';
                 const areaStr = r.exclusive_area ? `\n- 면적: ${r.exclusive_area}` : '';
                 const structureStr = r.structure ? `\n- 구조: ${r.structure}` : '';
@@ -2247,6 +2282,10 @@
                                 <input type="text" id="ad-field-maintenance" value="${data.maintenance || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
                             </div>
                         </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">관리비 세부내역</label>
+                            <input type="text" id="ad-field-maintenance_detail" value="${data.maintenance_detail || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 전기, 수도, 인터넷 등">
+                        </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1">1층 현관 비번</label>
@@ -2477,6 +2516,10 @@
                                 <input type="text" id="ad-field-maintenance" value="${data.maintenance || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
                             </div>
                         </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">관리비 세부내역</label>
+                            <input type="text" id="ad-field-maintenance_detail" value="${data.maintenance_detail || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 전기, 수도, 인터넷 등">
+                        </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1">현관 비번</label>
@@ -2662,6 +2705,10 @@
                                 <label class="block text-xs font-bold text-gray-500 mb-1">관리비</label>
                                 <input type="text" id="ad-field-maintenance" value="${data.maintenance || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
                             </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">관리비 세부내역</label>
+                            <input type="text" id="ad-field-maintenance_detail" value="${data.maintenance_detail || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 전기, 수도, 인터넷 등">
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
@@ -2849,6 +2896,13 @@
                     usage_type: usageType,
                     type: r.type || '',
                     area: r.exclusive_area || r.supply_area || '',
+                    maintenance: r.maintenance || '',
+                    maintenance_detail: r.maintenance_detail || '',
+                    common_pwd: r.common_pwd || '',
+                    unit_pwd: r.unit_pwd || '',
+                    phone: r.phone || '',
+                    land_area: r.land_area || '',
+                    total_floor_area: r.total_floor_area || '',
                     status: 'active'
                 },
                 email: currentUserEmail
