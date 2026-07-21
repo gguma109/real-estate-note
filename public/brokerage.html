@@ -307,6 +307,10 @@
                                 class="text-blue-600 font-bold text-sm px-4 py-1.5 rounded-lg border border-blue-200 bg-blue-50 hover:bg-blue-100 shadow-sm active:scale-95 transition-all">
                                 광고로 등록
                             </button>
+                            <button id="rental-editor-copy-btn" onclick="handleRentalCopyClick()"
+                                class="text-darkgreen font-bold text-sm px-4 py-1.5 rounded-lg border border-green-200 bg-green-50 hover:bg-green-100 shadow-sm active:scale-95 transition-all">
+                                복사
+                            </button>
                             <button onclick="handleRentalSaveClick()"
                                 class="text-darkgreen font-bold text-sm px-4 py-1.5 rounded-lg border border-green-200 bg-green-50 hover:bg-green-100 shadow-sm active:scale-95 transition-all">
                                 저장
@@ -1089,7 +1093,6 @@
                             </select>
                         </div>
                         <div class="flex gap-2">
-                            <button onclick="copyToClipboard('${r.id}')" class="text-darkgreen hover:text-white hover:bg-darkgreen font-bold text-xs px-3 py-1.5 rounded-lg border border-green-100 bg-green-50 shadow-sm active:scale-95 transition-all">카톡 복사</button>
                             <button onclick="deleteRental('${r.id}')" class="text-red-400 hover:text-red-500 font-bold text-xs px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 shadow-sm active:scale-95 transition-all">의뢰서 삭제</button>
                         </div>
                     </div>
@@ -1476,6 +1479,14 @@
             if (container) {
                 const id = container.getAttribute('data-id');
                 convertRentalToAd(id);
+            }
+        }
+
+        function handleRentalCopyClick() {
+            const container = document.querySelector('#rental-editor-content [data-id]');
+            if (container) {
+                const id = container.getAttribute('data-id');
+                copyToClipboard(id);
             }
         }
 
