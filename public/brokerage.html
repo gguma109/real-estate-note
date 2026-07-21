@@ -2544,6 +2544,12 @@
                                 <input type="text" id="ad-field-move_in_info" value="${data.move_in_info || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
                             </div>
                             <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">예상수익률</label>
+                                <input type="text" id="ad-field-expected_roi" value="${data.expected_roi || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 5.5%">
+                            </div>
+                        </div>
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1">담당자</label>
                                 <input type="text" id="ad-field-agent" value="${data.agent || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
                             </div>
@@ -2636,9 +2642,15 @@
                                 <input type="text" id="ad-field-maintenance" value="${data.maintenance || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
                             </div>
                         </div>
-                        <div>
-                            <label class="block text-xs font-bold text-gray-500 mb-1">관리비 세부내역</label>
-                            <input type="text" id="ad-field-maintenance_detail" value="${data.maintenance_detail || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 전기, 수도, 인터넷 등">
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">관리비 세부내역</label>
+                                <input type="text" id="ad-field-maintenance_detail" value="${data.maintenance_detail || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 전기, 수도, 인터넷 등">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-500 mb-1">예상수익률</label>
+                                <input type="text" id="ad-field-expected_roi" value="${data.expected_roi || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 5.5%">
+                            </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
@@ -3003,6 +3015,23 @@
             else if (r.sale_price) usageType = '매매';
             else if (r.deposit && !r.rent) usageType = '전세';
 
+            let expectedRoi = '';
+            if (['건물매매', '단독/전원주택', '상가'].includes(adCategory)) {
+                const salePrice = parseFloat(r.sale_price) || 0;
+                const loan = parseFloat(r.current_loan) || 0;
+                const totalDeposit = parseFloat(r.total_deposit) || 0;
+                const monthlyIncome = parseFloat(r.total_monthly_income) || 0;
+                const interestRate = parseFloat(r.loan_interest_rate) || 0;
+
+                const actualInvestment = salePrice - loan - totalDeposit;
+                if (actualInvestment > 0) {
+                    const annualInterest = loan * (interestRate / 100);
+                    const annualNetIncome = (monthlyIncome * 12) - annualInterest;
+                    const roi = (annualNetIncome / actualInvestment) * 100;
+                    expectedRoi = roi > 0 ? roi.toFixed(2) + '%' : '';
+                }
+            }
+
             const newAdData = {
                 address: r.address || '',
                 room_no: r.room || '',
@@ -3025,6 +3054,7 @@
                 phone: r.phone || '',
                 land_area: r.land_area || '',
                 total_floor_area: r.total_floor_area || '',
+                expected_roi: expectedRoi,
                 status: 'active'
             };
 
