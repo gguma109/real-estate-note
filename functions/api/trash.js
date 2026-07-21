@@ -10,7 +10,7 @@ export async function onRequestGet(context) {
     try {
         // Auto-cleanup items older than 30 days
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
-        try { await env.DB.prepare("DELETE FROM rentals WHERE user_id = ? AND is_deleted = 1 AND deleted_at < ?").bind(token, thirtyDaysAgo).run(); } catch(e){}
+        try { await env.JEJU_DB.prepare("DELETE FROM rentals WHERE user_id = ? AND is_deleted = 1 AND deleted_at < ?").bind(token, thirtyDaysAgo).run(); } catch(e){}
         try { await env.JEJU_DB.prepare("DELETE FROM ads WHERE user_id = ? AND is_deleted = 1 AND deleted_at < ?").bind(token, thirtyDaysAgo).run(); } catch(e){}
         try { await env.DB.prepare("DELETE FROM notes WHERE user_id = ? AND is_deleted = 1 AND deleted_at < ?").bind(token, thirtyDaysAgo).run(); } catch(e){}
         try { await env.DB.prepare("DELETE FROM moveouts WHERE user_id = ? AND is_deleted = 1 AND deleted_at < ?").bind(token, thirtyDaysAgo).run(); } catch(e){}
@@ -18,30 +18,30 @@ export async function onRequestGet(context) {
         try { await env.JEJU_DB.prepare("DELETE FROM settlements WHERE user_id = ? AND is_deleted = 1 AND deleted_at < ?").bind(token, thirtyDaysAgo).run(); } catch(e){}
 
         let rentals = [];
-        try { rentals = (await env.DB.prepare("SELECT id, 'rental' as type, type as title_hint, date as info, deleted_at FROM rentals WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
+        try { rentals = (await env.JEJU_DB.prepare("SELECT *, 'rental' as trash_type FROM rentals WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
 
         let ads = [];
-        try { ads = (await env.JEJU_DB.prepare("SELECT id, 'ad' as type, category as title_hint, data as info, deleted_at FROM ads WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
+        try { ads = (await env.JEJU_DB.prepare("SELECT *, 'ad' as trash_type FROM ads WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
 
         let notes = [];
-        try { notes = (await env.DB.prepare("SELECT id, 'note' as type, title as title_hint, content as info, deleted_at FROM notes WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
+        try { notes = (await env.DB.prepare("SELECT *, 'note' as trash_type FROM notes WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
 
         let moveouts = [];
-        try { moveouts = (await env.DB.prepare("SELECT id, 'moveout' as type, tenant_name as title_hint, address as info, deleted_at FROM moveouts WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
+        try { moveouts = (await env.DB.prepare("SELECT *, 'moveout' as trash_type FROM moveouts WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
 
         let gasMeters = [];
-        try { gasMeters = (await env.DB.prepare("SELECT id, 'gas_meter' as type, building_name as title_hint, reading_date as info, deleted_at FROM gas_meters WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
+        try { gasMeters = (await env.DB.prepare("SELECT *, 'gas_meter' as trash_type FROM gas_meters WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
 
         let settlements = [];
-        try { settlements = (await env.JEJU_DB.prepare("SELECT id, 'settlement' as type, title as title_hint, data as info, deleted_at FROM settlements WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
+        try { settlements = (await env.JEJU_DB.prepare("SELECT *, 'settlement' as trash_type FROM settlements WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
 
         const allTrash = [
-            ...rentals,
-            ...ads,
-            ...notes,
-            ...moveouts,
-            ...gasMeters,
-            ...settlements
+            ...rentals.map(r => ({ ...r, type: r.type, title_hint: r.type, info: r.date, trash_type: 'rental' })),
+            ...ads.map(a => ({ ...a, title_hint: a.category, info: a.data, trash_type: 'ad' })),
+            ...notes.map(n => ({ ...n, title_hint: n.title, info: n.content, trash_type: 'note' })),
+            ...moveouts.map(m => ({ ...m, title_hint: m.tenant_name, info: m.address, trash_type: 'moveout' })),
+            ...gasMeters.map(g => ({ ...g, title_hint: g.building_name, info: g.reading_date, trash_type: 'gas_meter' })),
+            ...settlements.map(s => ({ ...s, title_hint: s.title, info: s.data, trash_type: 'settlement' }))
         ];
 
         // Sort by deleted_at descending
@@ -79,7 +79,7 @@ export async function onRequestPut(context) {
         let tableName = '';
         let targetDB = null;
 
-        if (type === 'rental') { tableName = 'rentals'; targetDB = env.DB; }
+        if (type === 'rental') { tableName = 'rentals'; targetDB = env.JEJU_DB; }
         else if (type === 'ad') { tableName = 'ads'; targetDB = env.JEJU_DB; }
         else if (type === 'note') { tableName = 'notes'; targetDB = env.DB; }
         else if (type === 'moveout') { tableName = 'moveouts'; targetDB = env.DB; }
@@ -118,7 +118,7 @@ export async function onRequestDelete(context) {
             let tableName = '';
             let targetDB = null;
 
-            if (type === 'rental') { tableName = 'rentals'; targetDB = env.DB; }
+            if (type === 'rental') { tableName = 'rentals'; targetDB = env.JEJU_DB; }
             else if (type === 'ad') { tableName = 'ads'; targetDB = env.JEJU_DB; }
             else if (type === 'note') { tableName = 'notes'; targetDB = env.DB; }
             else if (type === 'moveout') { tableName = 'moveouts'; targetDB = env.DB; }
@@ -137,7 +137,7 @@ export async function onRequestDelete(context) {
             let tableName = '';
             let targetDB = null;
 
-            if (type === 'rental') { tableName = 'rentals'; targetDB = env.DB; }
+            if (type === 'rental') { tableName = 'rentals'; targetDB = env.JEJU_DB; }
             else if (type === 'ad') { tableName = 'ads'; targetDB = env.JEJU_DB; }
             else if (type === 'note') { tableName = 'notes'; targetDB = env.DB; }
             else if (type === 'moveout') { tableName = 'moveouts'; targetDB = env.DB; }
@@ -150,7 +150,7 @@ export async function onRequestDelete(context) {
             ).bind(token).run();
         } else {
             // Empty trash
-            await env.DB.prepare("DELETE FROM rentals WHERE user_id = ? AND is_deleted = 1").bind(token).run();
+            await env.JEJU_DB.prepare("DELETE FROM rentals WHERE user_id = ? AND is_deleted = 1").bind(token).run();
             await env.JEJU_DB.prepare("DELETE FROM ads WHERE user_id = ? AND is_deleted = 1").bind(token).run();
             try { await env.DB.prepare("DELETE FROM notes WHERE user_id = ? AND is_deleted = 1").bind(token).run(); } catch(e){}
             try { await env.DB.prepare("DELETE FROM moveouts WHERE user_id = ? AND is_deleted = 1").bind(token).run(); } catch(e){}

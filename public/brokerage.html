@@ -3041,26 +3041,123 @@
             list.innerHTML = '';
             
             trashItems.forEach(item => {
-                const typeName = item.type === 'rental' ? '중개의뢰서' : item.type === 'note' ? '메모장' : '광고매물';
+                let typeLabel = '기타';
+                let typeColor = 'bg-gray-100 text-gray-500';
+                if (item.type === 'rental') { typeLabel = '중개의뢰서'; typeColor = 'bg-teal-50 text-teal-700 border border-teal-100'; }
+                else if (item.type === 'ad') { typeLabel = '광고매물'; typeColor = 'bg-rose-50 text-rose-700 border border-rose-100'; }
+                else if (item.type === 'note') { typeLabel = '메모장'; typeColor = 'bg-green-50 text-green-700 border border-green-100'; }
+                else if (item.type === 'moveout') { typeLabel = '퇴실확인서'; typeColor = 'bg-blue-50 text-blue-700 border border-blue-100'; }
+                else if (item.type === 'gas_meter') { typeLabel = '가스검침'; typeColor = 'bg-purple-50 text-purple-700 border border-purple-100'; }
+                else if (item.type === 'settlement') { typeLabel = '정산계산기'; typeColor = 'bg-orange-50 text-orange-700 border border-orange-100'; }
+
                 const dateStr = item.deleted_at ? new Date(item.deleted_at).toLocaleString() : '';
                 
                 const card = document.createElement('div');
-                card.className = 'bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-between items-center';
+                card.className = 'bg-white rounded-xl p-4 shadow-sm border border-gray-100 flex justify-between items-center hover:border-darkgreen transition-colors cursor-pointer active:scale-[0.99]';
+                card.onclick = () => showTrashDetailPreview(item);
                 card.innerHTML = `
                     <div class="flex-1 min-w-0 pr-4">
                         <div class="flex items-center gap-2 mb-1">
-                            <span class="text-[10px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">${typeName}</span>
+                            <span class="text-[10px] font-bold px-1.5 py-0.5 rounded ${typeColor}">${typeLabel}</span>
                             <span class="text-xs text-gray-400">${dateStr}</span>
                         </div>
                         <div class="font-bold text-gray-800 text-sm truncate">${item.title_hint || '제목 없음'}</div>
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="restoreTrashItem('${item.id}', '${item.type}')" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100">복구</button>
-                        <button onclick="deleteTrashItemPermanently('${item.id}', '${item.type}')" class="text-xs font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors border border-red-100">완전삭제</button>
+                        <button onclick="event.stopPropagation(); restoreTrashItem('${item.id}', '${item.type}')" class="text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg hover:bg-blue-100 transition-colors border border-blue-100 shrink-0">복구</button>
+                        <button onclick="event.stopPropagation(); deleteTrashItemPermanently('${item.id}', '${item.type}')" class="text-xs font-bold text-red-600 bg-red-50 px-3 py-1.5 rounded-lg hover:bg-red-100 transition-colors border border-red-100 shrink-0">완전삭제</button>
                     </div>
                 `;
                 list.appendChild(card);
             });
+        }
+
+        function showTrashDetailPreview(item) {
+            let overlay = document.getElementById('trash-preview-modal');
+            if (!overlay) {
+                overlay = document.createElement('div');
+                overlay.id = 'trash-preview-modal';
+                overlay.className = 'fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in';
+                document.body.appendChild(overlay);
+            }
+            
+            let detailHtml = '';
+            let typeLabel = '기타';
+            if (item.type === 'rental') typeLabel = '중개의뢰서';
+            else if (item.type === 'ad') typeLabel = '광고매물';
+            else if (item.type === 'note') typeLabel = '메모장';
+            else if (item.type === 'moveout') typeLabel = '퇴실확인서';
+            else if (item.type === 'gas_meter') typeLabel = '가스검침';
+            else if (item.type === 'settlement') typeLabel = '정산계산기';
+
+            if (item.type === 'rental') {
+                detailHtml = `
+                    <div class="space-y-3">
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">의뢰 분류</span><span class="font-black text-darkgreen">${item.request_type === 'buyer' ? '구해요 (매수/임차)' : '내놓아요 (매도/임대)'}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">매물 종류</span><span class="font-black text-gray-800">${item.type || '-'}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">고객명/상호</span><span class="font-bold text-gray-800">${item.business_name || '-'}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">연락처</span><span class="font-bold text-gray-800">${item.phone || '-'}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">주소/희망지역</span><span class="font-bold text-gray-800">${item.address || '-'} ${item.room || ''}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">보증금/매매가</span><span class="font-black text-red-600">${item.deposit ? '보 ' + item.deposit + '만원' : (item.sale_price ? '매매 ' + item.sale_price + '만원' : (item.jeonse_price ? '전세 ' + item.jeonse_price + '만원' : '-'))}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">월세/년세</span><span class="font-black text-green-700">${item.rent ? '월 ' + item.rent + '만원' : (item.yearly_rent ? '년 ' + item.yearly_rent + '만원' : '-')}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">권리금</span><span class="font-bold text-gray-800">${item.premium ? item.premium + '만원' : '-'}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">관리비</span><span class="font-bold text-gray-800">${item.maintenance ? item.maintenance + '만원' : '-'} ${item.maintenance_detail ? '(' + item.maintenance_detail + ')' : ''}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">전용/공급면적</span><span class="font-medium text-gray-800">${item.exclusive_area || '-'} / ${item.supply_area || '-'}</span></div>
+                        <div class="flex flex-col gap-1 border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">비고/메모</span><span class="text-xs text-gray-700 whitespace-pre-wrap bg-gray-50 p-2.5 rounded-lg border border-gray-100 mt-1">${item.memo || '비고 없음'}</span></div>
+                    </div>
+                `;
+            } else if (item.type === 'ad') {
+                let parsed = {};
+                try { parsed = typeof item.info === 'string' ? JSON.parse(item.info) : item.info; } catch(e){}
+                detailHtml = `
+                    <div class="space-y-3">
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">광고 분류</span><span class="font-black text-blue-600">${item.category || '-'}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">매물 주소</span><span class="font-black text-gray-800">${parsed.address || '-'} ${parsed.room_no || ''}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">임대조건</span><span class="font-black text-red-600">${parsed.rent_type === 'sale' ? '매매 ' + (parsed.sale_price || '') : (parsed.rent_type === 'jeonse' ? '전세 ' + (parsed.jeonse_price || '') : '보 ' + (parsed.deposit || '') + ' / 월 ' + (parsed.rent || ''))}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">관리비</span><span class="font-bold text-gray-800">${parsed.maintenance || '-'}만원 ${parsed.maintenance_detail ? '(' + parsed.maintenance_detail + ')' : ''}</span></div>
+                        <div class="flex flex-col gap-1 border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">광고 타이틀</span><span class="font-bold text-xs text-gray-800 bg-gray-50 p-2 rounded border border-gray-100">${parsed.title || '-'}</span></div>
+                        <div class="flex flex-col gap-1 border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">상세설명</span><span class="text-xs text-gray-700 whitespace-pre-wrap bg-gray-50 p-2.5 rounded-lg border border-gray-100 mt-1">${parsed.description || '상세설명 없음'}</span></div>
+                    </div>
+                `;
+            } else if (item.type === 'note') {
+                detailHtml = `
+                    <div class="space-y-3">
+                        <div class="flex flex-col gap-1 border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">메모 제목</span><span class="font-black text-gray-800 text-sm">${item.title_hint || '제목 없음'}</span></div>
+                        <div class="flex flex-col gap-1 border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">메모 내용</span><span class="text-xs text-gray-700 whitespace-pre-wrap bg-gray-50 p-2.5 rounded-lg border border-gray-100 mt-1">${item.info || '내용 없음'}</span></div>
+                    </div>
+                `;
+            } else {
+                detailHtml = `
+                    <div class="space-y-3">
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">항목 구분</span><span class="font-black text-gray-800">${typeLabel}</span></div>
+                        <div class="flex justify-between border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">정보</span><span class="font-bold text-gray-800">${item.title_hint || '-'}</span></div>
+                        <div class="flex flex-col gap-1 border-b border-gray-100 pb-2"><span class="text-gray-400 font-bold">상세 내용</span><span class="text-xs text-gray-700 whitespace-pre-wrap bg-gray-50 p-2.5 rounded-lg border border-gray-100 mt-1">${typeof item.info === 'object' ? JSON.stringify(item.info, null, 2) : (item.info || '-')}</span></div>
+                    </div>
+                `;
+            }
+
+            overlay.innerHTML = `
+                <div class="bg-white rounded-2xl w-full max-w-md shadow-2xl p-5 border border-gray-100 relative animate-scale-up max-h-[85vh] flex flex-col">
+                    <div class="flex justify-between items-center mb-4 pb-2 border-b border-gray-100 shrink-0">
+                        <div class="flex items-center gap-2">
+                            <span class="text-xs font-black bg-red-50 text-red-600 px-2 py-0.5 rounded border border-red-100">휴지통 보관중</span>
+                            <h3 class="font-black text-gray-800 text-[1.15rem]">${typeLabel} 상세조회</h3>
+                        </div>
+                        <button onclick="document.getElementById('trash-preview-modal').remove()" class="text-gray-400 hover:text-gray-600 p-1 text-xl font-bold">&times;</button>
+                    </div>
+                    <div class="flex-1 overflow-y-auto pr-1 text-sm text-gray-600">
+                        ${detailHtml}
+                    </div>
+                    <div class="flex gap-2.5 mt-5 pt-3 border-t border-gray-100 shrink-0">
+                        <button onclick="document.getElementById('trash-preview-modal').remove(); restoreTrashItem('${item.id}', '${item.type}')" class="flex-1 text-sm font-black text-white bg-darkgreen py-3 rounded-xl shadow-md hover:bg-green-800 active:scale-[0.98] transition-all">이 항목 복구하기</button>
+                        <button onclick="document.getElementById('trash-preview-modal').remove(); deleteTrashItemPermanently('${item.id}', '${item.type}')" class="text-sm font-black text-red-600 bg-red-50 px-5 py-3 rounded-xl border border-red-100 hover:bg-red-100 active:scale-[0.98] transition-all">영구삭제</button>
+                    </div>
+                </div>
+            `;
+            
+            overlay.onclick = (e) => {
+                if (e.target === overlay) overlay.remove();
+            };
         }
         
         async function restoreTrashItem(id, type) {

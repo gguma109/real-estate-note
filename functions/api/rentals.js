@@ -30,9 +30,15 @@ export async function onRequestGet(context) {
         try {
             await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN jeonse_price TEXT").run();
         } catch (e) {}
+        try {
+            await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
+        } catch (e) {}
+        try {
+            await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN deleted_at TEXT").run();
+        } catch (e) {}
 
         const { results } = await env.JEJU_DB.prepare(
-            "SELECT * FROM rentals WHERE user_id = ? ORDER BY created_at DESC"
+            "SELECT * FROM rentals WHERE user_id = ? AND IFNULL(is_deleted, 0) = 0 ORDER BY created_at DESC"
         ).bind(token).all();
 
         return new Response(JSON.stringify(results), {
@@ -70,6 +76,12 @@ export async function onRequestPost(context) {
         } catch (e) {}
         try {
             await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN jeonse_price TEXT").run();
+        } catch (e) {}
+        try {
+            await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
+        } catch (e) {}
+        try {
+            await env.JEJU_DB.prepare("ALTER TABLE rentals ADD COLUMN deleted_at TEXT").run();
         } catch (e) {}
 
         // Upsert rental (Insert or Update if ID exists)
@@ -117,7 +129,7 @@ export async function onRequestDelete(context) {
 
         // Only delete if it belongs to this user
         const result = await env.JEJU_DB.prepare(
-            "DELETE FROM rentals WHERE id = ? AND user_id = ?"
+            "UPDATE rentals SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?"
         ).bind(id, token).run();
 
         if (result.meta.changes === 0) {
