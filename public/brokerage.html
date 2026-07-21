@@ -281,7 +281,7 @@
                 <!-- Rental List View -->
                 <div id="rental-list-view" class="flex-1 overflow-y-auto p-4 relative bg-gray-50 pb-24">
                     <!-- Rental Sub-tabs -->
-                    <div class="flex bg-gray-200/60 p-1 rounded-xl mb-4 max-w-sm mx-auto shadow-sm border border-gray-100 no-print">
+                    <div class="flex bg-gray-200/60 p-1 rounded-xl mb-3 max-w-sm mx-auto shadow-sm border border-gray-100 no-print">
                         <button onclick="switchRentalSubTab('seller')" id="subtab-rental-seller" 
                             class="flex-1 py-2 text-center text-xs font-black rounded-lg transition-all bg-white text-darkgreen shadow-sm">
                             매도·임대 (물건)
@@ -290,6 +290,19 @@
                             class="flex-1 py-2 text-center text-xs font-bold rounded-lg transition-all text-gray-500 hover:text-gray-700">
                             매수·임차 (손님)
                         </button>
+                    </div>
+
+                    <!-- Rental Category Filter Dropdown -->
+                    <div class="flex justify-center mb-4 no-print">
+                        <select id="rental-category-filter" onchange="setRentalCategoryFilter(this.value)" class="w-full max-w-[200px] bg-white border border-gray-200 rounded-xl px-2 py-2 text-[11px] font-bold outline-none text-gray-600 focus:border-darkgreen shadow-sm text-center">
+                            <option value="전체">모든 매물 종류</option>
+                            <option value="원.투.쓰리룸&공동주택">원/투룸/아파트/빌라 등</option>
+                            <option value="상가">상가/사무실</option>
+                            <option value="건물매매">건물매매</option>
+                            <option value="단독/전원주택">단독/전원주택</option>
+                            <option value="토지">토지</option>
+                            <option value="기타">기타</option>
+                        </select>
                     </div>
 
                     <div id="loadingIndicator" class="hidden justify-center items-center py-10 flex-col gap-3">
@@ -307,7 +320,7 @@
                     </div>
 
                     <!-- FAB Add Button -->
-                    <button onclick="addRental()"
+                    <button onclick="showRentalCategoryModal()"
                         class="fixed bottom-6 right-6 w-14 h-14 bg-darkgreen text-white rounded-full shadow-[0_4px_14px_0_rgba(6,78,59,0.39)] flex flex-col items-center justify-center text-3xl font-light hover:bg-[#042f2e] active:scale-90 transition-all z-50">
                         <span class="mt-[-2px]">+</span>
                     </button>
@@ -541,6 +554,40 @@
                             </button>
                         </div>
                         <button onclick="hideAdCategoryModal()" class="w-full mt-6 py-3 text-sm font-bold text-gray-400">취소</button>
+                    </div>
+                </div>
+
+                <!-- Rental Category Selection Modal -->
+                <div id="rental-category-modal" class="hidden fixed inset-0 z-[100] bg-black/50 flex items-center justify-center p-6">
+                    <div class="bg-white rounded-2xl w-full max-w-sm p-6 shadow-2xl">
+                        <h3 class="text-lg font-black text-gray-800 mb-4">중개의뢰서 매물 종류 선택</h3>
+                        <div class="space-y-2">
+                            <button onclick="addRental('원.투.쓰리룸&공동주택')" class="w-full py-3 px-4 bg-gray-50 hover:bg-green-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
+                                🏠 원/투룸/아파트/빌라 등
+                                <span class="text-xs text-gray-400">▶</span>
+                            </button>
+                            <button onclick="addRental('상가')" class="w-full py-3 px-4 bg-gray-50 hover:bg-green-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
+                                🏬 상가/사무실
+                                <span class="text-xs text-gray-400">▶</span>
+                            </button>
+                            <button onclick="addRental('건물매매')" class="w-full py-3 px-4 bg-gray-50 hover:bg-green-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
+                                🏗️ 건물매매
+                                <span class="text-xs text-gray-400">▶</span>
+                            </button>
+                            <button onclick="addRental('단독/전원주택')" class="w-full py-3 px-4 bg-gray-50 hover:bg-green-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
+                                🏡 단독/전원주택
+                                <span class="text-xs text-gray-400">▶</span>
+                            </button>
+                            <button onclick="addRental('토지')" class="w-full py-3 px-4 bg-gray-50 hover:bg-green-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
+                                🌳 토지
+                                <span class="text-xs text-gray-400">▶</span>
+                            </button>
+                            <button onclick="addRental('기타')" class="w-full py-3 px-4 bg-gray-50 hover:bg-green-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
+                                📦 기타 매물
+                                <span class="text-xs text-gray-400">▶</span>
+                            </button>
+                        </div>
+                        <button onclick="hideRentalCategoryModal()" class="w-full mt-6 py-3 text-sm font-bold text-gray-400">취소</button>
                     </div>
                 </div>
             </div>
@@ -876,6 +923,21 @@
         }
 
         // --- 2. 임대관리 관련 로직 ---
+        let currentRentalCategoryFilter = '전체';
+
+        function showRentalCategoryModal() {
+            document.getElementById('rental-category-modal').classList.remove('hidden');
+        }
+
+        function hideRentalCategoryModal() {
+            document.getElementById('rental-category-modal').classList.add('hidden');
+        }
+
+        function setRentalCategoryFilter(category) {
+            currentRentalCategoryFilter = category;
+            renderRentals();
+        }
+
         async function loadRentalsFromCloud() {
             document.getElementById('loadingIndicator').classList.remove('hidden');
             document.getElementById('rental-list').innerHTML = '';
@@ -897,12 +959,13 @@
             renderRentals();
         }
 
-        async function addRental() {
+        async function addRental(category = '원.투.쓰리룸&공동주택') {
+            hideRentalCategoryModal();
             const today = new Date();
             const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             const newRental = {
                 email: currentUserEmail,
-                type: '원.투.쓰리룸&공동주택',
+                type: category,
                 date: dateStr, movein: '', address: '', room: '',
                 deposit: '', premium: '', rent: '', yearly_rent: '', maintenance: '',
                 inc_internet: false, inc_tv: false, inc_water: false,
@@ -1002,7 +1065,9 @@
 
             const filteredRentals = rentals.filter(r => {
                 const reqType = r.request_type || 'seller';
-                return reqType === currentRentalSubTab;
+                const matchesSubTab = reqType === currentRentalSubTab;
+                const matchesCategory = currentRentalCategoryFilter === '전체' || r.type === currentRentalCategoryFilter;
+                return matchesSubTab && matchesCategory;
             });
 
             if (!filteredRentals || filteredRentals.length === 0) {
@@ -3011,7 +3076,6 @@
             if (finalContent) {
                 try {
                     await navigator.clipboard.writeText(finalContent);
-                    alert('입력된 내용이 복사되었습니다! (담당자, 종류, 상호명 제외)');
                 } catch (err) {
                     const textArea = document.createElement("textarea");
                     textArea.value = finalContent;
@@ -3019,7 +3083,6 @@
                     textArea.select();
                     document.execCommand('copy');
                     document.body.removeChild(textArea);
-                    alert('입력된 내용이 복사되었습니다! (담당자, 종류, 상호명 제외)');
                 }
             } else {
                 alert('복사할 내용이 없습니다.');
