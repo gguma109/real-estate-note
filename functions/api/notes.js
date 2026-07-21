@@ -7,10 +7,15 @@ export async function onRequestGet(context) {
     }
 
     try {
-        
-        
+        try {
+            await env.DB.prepare("ALTER TABLE notes ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
+        } catch(e){}
+        try {
+            await env.DB.prepare("ALTER TABLE notes ADD COLUMN deleted_at TEXT").run();
+        } catch(e){}
+
         const { results } = await env.DB.prepare(
-            "SELECT * FROM notes WHERE user_id = ? ORDER BY updated_at DESC"
+            "SELECT * FROM notes WHERE user_id = ? AND IFNULL(is_deleted, 0) = 0 ORDER BY updated_at DESC"
         ).bind(token).all();
 
         return new Response(JSON.stringify(results), {
@@ -36,6 +41,14 @@ export async function onRequestPost(context) {
         await env.DB.prepare(
             "INSERT OR IGNORE INTO users (id, email) VALUES (?, ?)"
         ).bind(token, body.email || `user_${token}@placeholder.com`).run();
+
+        // Ensure columns exist
+        try {
+            await env.DB.prepare("ALTER TABLE notes ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
+        } catch(e){}
+        try {
+            await env.DB.prepare("ALTER TABLE notes ADD COLUMN deleted_at TEXT").run();
+        } catch(e){}
 
         const id = body.id && !body.id.startsWith('temp_') ? body.id : crypto.randomUUID();
 
@@ -70,7 +83,7 @@ export async function onRequestDelete(context) {
         if (!id) return new Response(JSON.stringify({ error: "Missing ID" }), { status: 400 });
 
         const result = await env.DB.prepare(
-            "DELETE FROM notes WHERE id = ? AND user_id = ?"
+            "UPDATE notes SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?"
         ).bind(id, token).run();
 
         if (result.meta.changes === 0) {
