@@ -21,11 +21,16 @@ export async function onRequestGet(context) {
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             `).run();
+        } catch (err) {}
+        try {
             await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
+        } catch (err) {}
+        try {
             await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN deleted_at DATETIME").run();
         } catch (err) {}
+
         const { results } = await env.JEJU_DB.prepare(
-            "SELECT * FROM ads WHERE user_id = ? AND is_deleted = 0 ORDER BY updated_at DESC"
+            "SELECT * FROM ads WHERE user_id = ? AND IFNULL(is_deleted, 0) = 0 ORDER BY updated_at DESC"
         ).bind(token).all();
 
         return new Response(JSON.stringify(results), {
@@ -54,6 +59,13 @@ export async function onRequestPost(context) {
                 "INSERT OR IGNORE INTO users (id, email) VALUES (?, ?)"
             ).bind(token, body.email || `user_${token}@placeholder.com`).run();
         } catch(e) {}
+
+        try {
+            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
+        } catch (err) {}
+        try {
+            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN deleted_at DATETIME").run();
+        } catch (err) {}
 
         const id = body.id && !body.id.startsWith('temp_') ? body.id : crypto.randomUUID();
 
@@ -87,6 +99,13 @@ export async function onRequestDelete(context) {
         const id = url.searchParams.get('id');
 
         if (!id) return new Response(JSON.stringify({ error: "Missing ID" }), { status: 400 });
+
+        try {
+            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
+        } catch (err) {}
+        try {
+            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN deleted_at DATETIME").run();
+        } catch (err) {}
 
         const result = await env.JEJU_DB.prepare(
             "UPDATE ads SET is_deleted = 1, deleted_at = CURRENT_TIMESTAMP WHERE id = ? AND user_id = ?"
