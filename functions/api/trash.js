@@ -8,6 +8,15 @@ export async function onRequestGet(context) {
     }
 
     try {
+        // Auto-cleanup items older than 30 days
+        const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
+        try { await env.DB.prepare("DELETE FROM rentals WHERE user_id = ? AND is_deleted = 1 AND deleted_at < ?").bind(token, thirtyDaysAgo).run(); } catch(e){}
+        try { await env.JEJU_DB.prepare("DELETE FROM ads WHERE user_id = ? AND is_deleted = 1 AND deleted_at < ?").bind(token, thirtyDaysAgo).run(); } catch(e){}
+        try { await env.DB.prepare("DELETE FROM notes WHERE user_id = ? AND is_deleted = 1 AND deleted_at < ?").bind(token, thirtyDaysAgo).run(); } catch(e){}
+        try { await env.DB.prepare("DELETE FROM moveouts WHERE user_id = ? AND is_deleted = 1 AND deleted_at < ?").bind(token, thirtyDaysAgo).run(); } catch(e){}
+        try { await env.DB.prepare("DELETE FROM gas_meters WHERE user_id = ? AND is_deleted = 1 AND deleted_at < ?").bind(token, thirtyDaysAgo).run(); } catch(e){}
+        try { await env.JEJU_DB.prepare("DELETE FROM settlements WHERE user_id = ? AND is_deleted = 1 AND deleted_at < ?").bind(token, thirtyDaysAgo).run(); } catch(e){}
+
         let rentals = [];
         try { rentals = (await env.DB.prepare("SELECT id, 'rental' as type, type as title_hint, date as info, deleted_at FROM rentals WHERE user_id = ? AND is_deleted = 1").bind(token).all()).results || []; } catch(e){}
 
