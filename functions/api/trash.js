@@ -8,6 +8,10 @@ export async function onRequestGet(context) {
     }
 
     try {
+        // Ensure ads table has soft-delete columns in JEJU_DB
+        try { await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run(); } catch(e){}
+        try { await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN deleted_at TEXT").run(); } catch(e){}
+
         // Auto-cleanup items older than 30 days
         const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString();
         try { await env.JEJU_DB.prepare("DELETE FROM rentals WHERE user_id = ? AND is_deleted = 1 AND deleted_at < ?").bind(token, thirtyDaysAgo).run(); } catch(e){}

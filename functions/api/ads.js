@@ -17,7 +17,7 @@ export async function onRequestGet(context) {
                     category TEXT,
                     data TEXT,
                     is_deleted BOOLEAN DEFAULT 0,
-                    deleted_at DATETIME,
+                    deleted_at TEXT,
                     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
                 )
             `).run();
@@ -26,7 +26,7 @@ export async function onRequestGet(context) {
             await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
         } catch (err) {}
         try {
-            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN deleted_at DATETIME").run();
+            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN deleted_at TEXT").run();
         } catch (err) {}
 
         const { results } = await env.JEJU_DB.prepare(
@@ -64,7 +64,7 @@ export async function onRequestPost(context) {
             await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
         } catch (err) {}
         try {
-            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN deleted_at DATETIME").run();
+            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN deleted_at TEXT").run();
         } catch (err) {}
 
         const id = body.id && !body.id.startsWith('temp_') ? body.id : crypto.randomUUID();
@@ -104,7 +104,7 @@ export async function onRequestDelete(context) {
             await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN is_deleted BOOLEAN DEFAULT 0").run();
         } catch (err) {}
         try {
-            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN deleted_at DATETIME").run();
+            await env.JEJU_DB.prepare("ALTER TABLE ads ADD COLUMN deleted_at TEXT").run();
         } catch (err) {}
 
         const result = await env.JEJU_DB.prepare(

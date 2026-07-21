@@ -437,9 +437,10 @@
                         <div class="grid grid-cols-3 gap-2">
                             <select id="ad-category-filter" onchange="setAdCategoryFilter(this.value)" class="w-full bg-white border border-gray-200 rounded-xl px-1 py-2 text-[11px] font-bold outline-none text-gray-600 focus:border-orange-500 shadow-sm text-center">
                                 <option value="전체">모든 매물</option>
-                                <option value="원.투.쓰리룸&공동주택">원룸/주택</option>
-                                <option value="상가">상가</option>
-                                <option value="주택&건물 통매매">건물매매</option>
+                                <option value="원.투.쓰리룸&공동주택">원/투룸/아파트/빌라 등</option>
+                                <option value="상가">상가/사무실</option>
+                                <option value="건물매매">건물매매</option>
+                                <option value="단독/전원주택">단독/전원주택</option>
                                 <option value="토지">토지</option>
                                 <option value="기타">기타</option>
                             </select>
@@ -522,8 +523,12 @@
                                 🏬 상가
                                 <span class="text-xs text-gray-400">▶</span>
                             </button>
-                            <button onclick="addAd('주택&건물 통매매')" class="w-full py-3 px-4 bg-gray-50 hover:bg-orange-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
-                                🏗️ 주택&건물 통매매
+                            <button onclick="addAd('건물매매')" class="w-full py-3 px-4 bg-gray-50 hover:bg-orange-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
+                                🏗️ 건물매매
+                                <span class="text-xs text-gray-400">▶</span>
+                            </button>
+                            <button onclick="addAd('단독/전원주택')" class="w-full py-3 px-4 bg-gray-50 hover:bg-orange-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
+                                🏡 단독/전원주택
                                 <span class="text-xs text-gray-400">▶</span>
                             </button>
                             <button onclick="addAd('토지')" class="w-full py-3 px-4 bg-gray-50 hover:bg-orange-50 border border-gray-100 rounded-xl text-left font-bold text-gray-700 transition-colors flex justify-between items-center">
@@ -1013,7 +1018,9 @@
                     '아파트': '🏢', '빌라': '🏘️', '주택': '🏠', '상가': '🏬',
                     '건물': '🏗️', '토지': '🌳', '기타': '📦',
                     '원.투.쓰리룸&공동주택': '🏠',
-                    '주택&건물 통매매': '🏘️'
+                    '주택&건물 통매매': '🏘️',
+                    '건물매매': '🏗️',
+                    '단독/전원주택': '🏡'
                 };
                 const icon = icons[r.type] || '🏠';
                 const status = r.status || '진행중';
@@ -1090,7 +1097,8 @@
                             <select class="rental-input rental-select text-[0.9rem] font-black text-darkgreen bg-transparent outline-none py-1 tracking-wide" data-field="type">
                                 <option value="원.투.쓰리룸&공동주택" ${r.type === '원.투.쓰리룸&공동주택' ? 'selected' : ''}>원/투룸/아파트/빌라 등</option>
                                 <option value="상가" ${r.type === '상가' ? 'selected' : ''}>상가/사무실</option>
-                                <option value="주택&건물 통매매" ${r.type === '주택&건물 통매매' ? 'selected' : ''}>단독주택/건물</option>
+                                <option value="건물매매" ${r.type === '건물매매' ? 'selected' : ''}>건물매매</option>
+                                <option value="단독/전원주택" ${r.type === '단독/전원주택' ? 'selected' : ''}>단독/전원주택</option>
                                 <option value="토지" ${r.type === '토지' ? 'selected' : ''}>토지</option>
                                 <option value="기타" ${r.type === '기타' ? 'selected' : ''}>기타</option>
                             </select>
@@ -2174,8 +2182,9 @@
         
         function getAdNoBounds(category) {
             if (category === '원.투.쓰리룸&공동주택') return [1, 199];
-            if (category === '상가/사무실') return [200, 399];
-            if (category === '주택&건물 통매매') return [400, 599];
+            if (category === '상가/사무실' || category === '상가') return [200, 399];
+            if (category === '건물매매') return [400, 499];
+            if (category === '단독/전원주택') return [500, 599];
             if (category === '토지') return [600, 799];
             if (category === '기타') return [800, 999];
             return [1, 999];
@@ -2472,7 +2481,7 @@
                         </div>
                     </div>
                 `;
-            } else if (category === '주택&건물 통매매') {
+            } else if (category === '건물매매' || category === '단독/전원주택' || category === '주택&건물 통매매') {
                 return `
                     <div class="space-y-4">
                         <div class="grid grid-cols-2 gap-3">
