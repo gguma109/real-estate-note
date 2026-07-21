@@ -1441,7 +1441,7 @@
             const dateStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
             const newRental = {
                 email: currentUserEmail,
-                type: '원.투.쓰리룸&공동주택',
+                type: '',
                 date: dateStr, movein: '', address: '', room: '',
                 deposit: '', premium: '', rent: '', yearly_rent: '', maintenance: '',
                 inc_internet: false, inc_tv: false, inc_water: false,
@@ -1543,7 +1543,9 @@
                     '아파트': '🏢', '빌라': '🏘️', '주택': '🏠', '상가': '🏬',
                     '건물': '🏗️', '토지': '🌳', '기타': '📦',
                     '원.투.쓰리룸&공동주택': '🏠',
-                    '주택&건물 통매매': '🏘️'
+                    '주택&건물 통매매': '🏘️',
+                    '건물매매': '🏗️',
+                    '단독/전원주택': '🏡'
                 };
                 const icon = icons[r.type] || '🏠';
                 const status = r.status || '진행중';
@@ -1605,6 +1607,7 @@
                         <div class="flex items-center gap-2">
                             <span class="text-lg">🏷️</span>
                             <select class="rental-input rental-select text-[0.9rem] font-black text-darkgreen bg-transparent outline-none py-1 tracking-wide" data-field="type">
+                                <option value="" disabled ${!r.type ? 'selected' : ''}>매물 카테고리 선택</option>
                                 <option value="원.투.쓰리룸&공동주택" ${r.type === '원.투.쓰리룸&공동주택' ? 'selected' : ''}>원/투룸/아파트/빌라 등</option>
                                 <option value="상가" ${r.type === '상가' ? 'selected' : ''}>상가/사무실</option>
                                 <option value="건물매매" ${r.type === '건물매매' ? 'selected' : ''}>건물매매</option>
@@ -1654,11 +1657,11 @@
                                 <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">공급면적</label>
                                 <input type="text" class="rental-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="예: 33.1㎡ / 10평" data-field="supply_area" value="${r.supply_area || ''}">
                             </div>
-                            <div class="col-span-1 area-field field-transition ${['주택&건물 통매매', '상가'].includes(r.type) ? '' : 'collapsed'}">
+                            <div class="col-span-1 area-field field-transition ${['건물매매', '단독/전원주택', '상가'].includes(r.type) ? '' : 'collapsed'}">
                                 <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">대지면적 (㎡)</label>
                                 <input type="text" inputmode="decimal" class="rental-input area-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="" data-field="land_area" value="${r.land_area || ''}">
                             </div>
-                            <div class="col-span-1 area-field field-transition ${['주택&건물 통매매', '상가'].includes(r.type) ? '' : 'collapsed'}">
+                            <div class="col-span-1 area-field field-transition ${['건물매매', '단독/전원주택', '상가'].includes(r.type) ? '' : 'collapsed'}">
                                 <label class="block text-[0.8rem] font-bold text-gray-500 mb-1 ml-1 tracking-tight">연면적 (㎡)</label>
                                 <input type="text" inputmode="decimal" class="rental-input area-input w-full px-3 py-2 bg-gray-50 border border-gray-200 focus:border-darkgreen focus:ring-1 focus:ring-darkgreen rounded-lg text-sm font-medium" placeholder="" data-field="total_floor_area" value="${r.total_floor_area || ''}">
                             </div>
@@ -1708,7 +1711,7 @@
                             </div>
                             
                             <!-- 건물 매매 전용 투자 분석 항목 -->
-                            <div class="col-span-2 grid grid-cols-2 gap-3 pt-3 border-t-2 border-dashed border-gray-200 mt-2 building-field field-transition ${['주택&건물 통매매', '상가'].includes(r.type) ? '' : 'collapsed'}">
+                            <div class="col-span-2 grid grid-cols-2 gap-3 pt-3 border-t-2 border-dashed border-gray-200 mt-2 building-field field-transition ${['건물매매', '단독/전원주택', '상가'].includes(r.type) ? '' : 'collapsed'}">
                                 <div class="col-span-2 bg-indigo-50 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-md mb-1 inline-block w-max">
                                     📊 건물/상가 수익률 분석표
                                 </div>
@@ -1844,14 +1847,14 @@
                     // '건물', '주택', '상가'일 때만 대지/연면적 노출
                     if (field === 'type') {
                         const areaFields = editorEl.querySelectorAll('.area-field');
-                        const isVisible = ['주택&건물 통매매', '상가'].includes(value);
+                        const isVisible = ['건물매매', '단독/전원주택', '상가'].includes(value);
                         areaFields.forEach(f => {
                             if (isVisible) f.classList.remove('collapsed');
                             else f.classList.add('collapsed');
                         });
                         
                         const buildingFields = editorEl.querySelectorAll('.building-field');
-                        const isBuilding = ['주택&건물 통매매', '상가'].includes(value);
+                        const isBuilding = ['건물매매', '단독/전원주택', '상가'].includes(value);
                         buildingFields.forEach(f => {
                             if (isBuilding) f.classList.remove('collapsed');
                             else f.classList.add('collapsed');
@@ -1977,6 +1980,11 @@
                             }
                         }
                     });
+
+                    if (!rental.type) {
+                        alert('매물 카테고리를 먼저 선택해 주세요!');
+                        return;
+                    }
 
                     document.getElementById('sync-icon').classList.remove('hidden');
                     if (!rental.id.startsWith('temp_')) {
