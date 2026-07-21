@@ -2020,7 +2020,7 @@
             const noteStr = r.special_notes ? `\n- 특이사항: ${r.special_notes}` : '';
 
             let buildingStr = '';
-            if (['건물', '상가'].includes(r.type)) {
+            if (['건물매매', '상가'].includes(r.type)) {
                 const salePrice = parseFloat(r.sale_price) || 0;
                 const loan = parseFloat(r.current_loan) || 0;
                 const totalDeposit = parseFloat(r.total_deposit) || 0;
