@@ -2159,6 +2159,57 @@
             }
 
             checkAdDuplication();
+            bindAdCalcEvents();
+        }
+
+        function calculateAdROI(editorEl = document.getElementById('ads-editor-view')) {
+            if (!editorEl) return;
+            const getVal = (field) => {
+                const el = editorEl.querySelector(`#ad-field-${field}`);
+                if (!el) return 0;
+                return parseFloat(el.value.replace(/[^0-9.-]/g, '')) || 0;
+            };
+
+            const salePrice = getVal('sale_price'); // 매매가
+            const loan = getVal('current_loan'); // 융자
+            const totalDeposit = getVal('total_deposit'); // 총보증금
+            const monthlyIncome = getVal('total_monthly_income'); // 월 총수입
+            const interestRate = getVal('loan_interest_rate'); // 이자율(%)
+
+            const actualInvestment = salePrice - loan - totalDeposit;
+            const annualInterest = loan * (interestRate / 100);
+            const monthlyInterest = annualInterest / 12;
+            const netMonthlyIncome = monthlyIncome - monthlyInterest;
+            
+            let roi = 0;
+            if (actualInvestment > 0) {
+                roi = ((netMonthlyIncome * 12) / actualInvestment) * 100;
+            }
+
+            const invEl = editorEl.querySelector('#ad-calc-investment');
+            const netEl = editorEl.querySelector('#ad-calc-monthly-net');
+            const roiEl = editorEl.querySelector('#ad-calc-roi');
+
+            if (invEl) invEl.innerText = (actualInvestment > 0 ? actualInvestment.toLocaleString() : '0') + '만원';
+            if (netEl) netEl.innerText = Math.round(netMonthlyIncome).toLocaleString() + '만원';
+            if (roiEl) roiEl.innerText = (roi > 0 ? roi.toFixed(2) : '0.00') + '%';
+
+            const expRoiEl = editorEl.querySelector('#ad-field-expected_roi');
+            if (expRoiEl && roi > 0) {
+                expRoiEl.value = roi.toFixed(2) + '%';
+            }
+        }
+
+        function bindAdCalcEvents(editorEl = document.getElementById('ads-editor-view')) {
+            if (!editorEl) return;
+            const calcFields = ['sale_price', 'current_loan', 'total_deposit', 'total_monthly_income', 'loan_interest_rate'];
+            calcFields.forEach(fieldId => {
+                const el = editorEl.querySelector(`#ad-field-${fieldId}`);
+                if (el) {
+                    el.addEventListener('input', () => calculateAdROI(editorEl));
+                }
+            });
+            calculateAdROI(editorEl);
         }
 
         function openAdEditor(id) {
@@ -2216,6 +2267,7 @@
             }
 
             checkAdDuplication(); // 초기 로드 시에도 검사
+            bindAdCalcEvents();
         }
 
         function checkAdDuplication() {
@@ -2548,6 +2600,54 @@
                                 <input type="text" id="ad-field-expected_roi" value="${data.expected_roi || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 5.5%">
                             </div>
                         </div>
+
+                        <!-- 건물/상가 수익률 분석표 -->
+                        <div class="grid grid-cols-2 gap-3 pt-3 border-t-2 border-dashed border-gray-200 mt-2">
+                            <div class="col-span-2 bg-indigo-50 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-md mb-1 inline-block w-max">
+                                📊 건물/상가 수익률 분석표
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">준공일</label>
+                                <input type="text" id="ad-field-completion_date" value="${data.completion_date || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 2020-05-15">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">세대수 구성</label>
+                                <input type="text" id="ad-field-building_config" value="${data.building_config || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 상가 1, 투룸 2">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">현 융자금액 (만원)</label>
+                                <input type="text" inputmode="decimal" id="ad-field-current_loan" value="${data.current_loan || ''}" class="ad-calc-trigger w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 font-bold text-right" placeholder="0">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">총 보증금 (만원)</label>
+                                <input type="text" inputmode="decimal" id="ad-field-total_deposit" value="${data.total_deposit || ''}" class="ad-calc-trigger w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 font-bold text-right" placeholder="0">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">월 총수입 (만원)</label>
+                                <input type="text" inputmode="decimal" id="ad-field-total_monthly_income" value="${data.total_monthly_income || ''}" class="ad-calc-trigger w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 font-bold text-right" placeholder="0">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">대출 금리 (%)</label>
+                                <input type="text" inputmode="decimal" id="ad-field-loan_interest_rate" value="${data.loan_interest_rate || ''}" class="ad-calc-trigger w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 font-bold text-right" placeholder="예: 4.5">
+                            </div>
+                            
+                            <!-- 자동 계산 결과 영역 -->
+                            <div class="col-span-2 bg-indigo-50/50 rounded-xl p-4 mt-1 border border-indigo-100 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs font-bold text-gray-500">실투자금</span>
+                                    <span class="text-sm font-black text-indigo-900" id="ad-calc-investment">0만원</span>
+                                </div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs font-bold text-gray-500">월 순수익 (이자 제외)</span>
+                                    <span class="text-sm font-black text-indigo-900" id="ad-calc-monthly-net">0만원</span>
+                                </div>
+                                <div class="flex justify-between items-center border-t border-indigo-100 pt-2 mt-2">
+                                    <span class="text-xs font-bold text-indigo-900">연 수익률</span>
+                                    <span class="text-base font-black text-indigo-600" id="ad-calc-roi">0.00%</span>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="grid grid-cols-2 gap-3">
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1">담당자</label>
@@ -2650,6 +2750,53 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1">예상수익률</label>
                                 <input type="text" id="ad-field-expected_roi" value="${data.expected_roi || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 5.5%">
+                            </div>
+                        </div>
+
+                        <!-- 건물/상가 수익률 분석표 -->
+                        <div class="grid grid-cols-2 gap-3 pt-3 border-t-2 border-dashed border-gray-200 mt-2">
+                            <div class="col-span-2 bg-indigo-50 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-md mb-1 inline-block w-max">
+                                📊 건물/상가 수익률 분석표
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">준공일</label>
+                                <input type="text" id="ad-field-completion_date" value="${data.completion_date || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 2020-05-15">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">세대수 구성</label>
+                                <input type="text" id="ad-field-building_config" value="${data.building_config || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 상가 1, 투룸 2">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">현 융자금액 (만원)</label>
+                                <input type="text" inputmode="decimal" id="ad-field-current_loan" value="${data.current_loan || ''}" class="ad-calc-trigger w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 font-bold text-right" placeholder="0">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">총 보증금 (만원)</label>
+                                <input type="text" inputmode="decimal" id="ad-field-total_deposit" value="${data.total_deposit || ''}" class="ad-calc-trigger w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 font-bold text-right" placeholder="0">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">월 총수입 (만원)</label>
+                                <input type="text" inputmode="decimal" id="ad-field-total_monthly_income" value="${data.total_monthly_income || ''}" class="ad-calc-trigger w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 font-bold text-right" placeholder="0">
+                            </div>
+                            <div class="col-span-1">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">대출 금리 (%)</label>
+                                <input type="text" inputmode="decimal" id="ad-field-loan_interest_rate" value="${data.loan_interest_rate || ''}" class="ad-calc-trigger w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 font-bold text-right" placeholder="예: 4.5">
+                            </div>
+                            
+                            <!-- 자동 계산 결과 영역 -->
+                            <div class="col-span-2 bg-indigo-50/50 rounded-xl p-4 mt-1 border border-indigo-100 shadow-[inset_0_2px_10px_rgba(0,0,0,0.02)]">
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs font-bold text-gray-500">실투자금</span>
+                                    <span class="text-sm font-black text-indigo-900" id="ad-calc-investment">0만원</span>
+                                </div>
+                                <div class="flex justify-between items-center mb-2">
+                                    <span class="text-xs font-bold text-gray-500">월 순수익 (이자 제외)</span>
+                                    <span class="text-sm font-black text-indigo-900" id="ad-calc-monthly-net">0만원</span>
+                                </div>
+                                <div class="flex justify-between items-center border-t border-indigo-100 pt-2 mt-2">
+                                    <span class="text-xs font-bold text-indigo-900">연 수익률</span>
+                                    <span class="text-base font-black text-indigo-600" id="ad-calc-roi">0.00%</span>
+                                </div>
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
@@ -3054,6 +3201,12 @@
                 phone: r.phone || '',
                 land_area: r.land_area || '',
                 total_floor_area: r.total_floor_area || '',
+                completion_date: r.completion_date || '',
+                building_config: r.building_config || '',
+                current_loan: r.current_loan || '',
+                total_deposit: r.total_deposit || '',
+                total_monthly_income: r.total_monthly_income || '',
+                loan_interest_rate: r.loan_interest_rate || '',
                 expected_roi: expectedRoi,
                 status: 'active'
             };
