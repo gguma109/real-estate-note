@@ -2259,84 +2259,100 @@
         }
 
         function handleAdCategoryChange(category) {
-            const adId = document.getElementById('editor-ad-id').value;
-            const ad = ads.find(a => a.id === adId);
-            if (!ad) return;
+            try {
+                const adId = document.getElementById('editor-ad-id').value;
+                const ad = ads.find(a => a.id === adId);
+                if (!ad) return;
 
-            // Update category
-            ad.category = category;
-            document.getElementById('editor-ad-category').value = category;
-            document.getElementById('ad-editor-title').innerText = category;
-            
-            // Re-render form
-            const formArea = document.getElementById('ad-dynamic-form-area');
-            formArea.innerHTML = generateAdForm(category, ad.data || {});
+                // Update category
+                ad.category = category;
+                document.getElementById('editor-ad-category').value = category;
+                document.getElementById('ad-editor-title').innerText = category;
+                
+                // Re-render form
+                const formArea = document.getElementById('ad-dynamic-form-area');
+                if (formArea) {
+                    formArea.innerHTML = generateAdForm(category, ad.data || {});
+                }
 
-            // 매물번호 및 주소/동호수 중복 검사 이벤트 연결
-            const dupFields = ['ad-field-ad_no_num', 'ad-field-address', 'ad-field-room_no'];
-            dupFields.forEach(fieldId => {
-                const el = document.getElementById(fieldId);
-                if (el) el.addEventListener('input', checkAdDuplication);
-            });
-            
-            const elAdNoNum = document.getElementById('ad-field-ad_no_num');
-            if (elAdNoNum) {
-                elAdNoNum.addEventListener('focus', () => updateAdNoSuggestion(category));
-                elAdNoNum.addEventListener('input', () => updateAdNoSuggestion(category));
+                // 매물번호 및 주소/동호수 중복 검사 이벤트 연결
+                const dupFields = ['ad-field-ad_no_num', 'ad-field-address', 'ad-field-room_no'];
+                dupFields.forEach(fieldId => {
+                    const el = document.getElementById(fieldId);
+                    if (el) el.addEventListener('input', checkAdDuplication);
+                });
+                
+                const elAdNoNum = document.getElementById('ad-field-ad_no_num');
+                if (elAdNoNum) {
+                    elAdNoNum.addEventListener('focus', () => updateAdNoSuggestion(category));
+                    elAdNoNum.addEventListener('input', () => updateAdNoSuggestion(category));
+                }
+
+                checkAdDuplication();
+                bindAdCalcEvents();
+            } catch (error) {
+                console.error("handleAdCategoryChange Error:", error);
+                showToast("카테고리 변경 중 오류 발생: " + error.message, "error");
             }
-
-            checkAdDuplication();
-            bindAdCalcEvents();
         }
 
         function calculateAdROI(editorEl = document.getElementById('ads-editor-view')) {
-            if (!editorEl) return;
-            const getVal = (field) => {
-                const el = editorEl.querySelector(`#ad-field-${field}`);
-                if (!el) return 0;
-                return parseFloat(el.value.replace(/[^0-9.-]/g, '')) || 0;
-            };
+            try {
+                if (!editorEl) return;
+                const getVal = (field) => {
+                    const el = editorEl.querySelector(`#ad-field-${field}`);
+                    if (!el || el.value === undefined || el.value === null) return 0;
+                    const valStr = String(el.value).replace(/[^0-9.-]/g, '');
+                    return parseFloat(valStr) || 0;
+                };
 
-            const salePrice = getVal('sale_price'); // 매매가
-            const loan = getVal('current_loan'); // 융자
-            const totalDeposit = getVal('total_deposit'); // 총보증금
-            const monthlyIncome = getVal('total_monthly_income'); // 월 총수입
-            const interestRate = getVal('loan_interest_rate'); // 이자율(%)
+                const salePrice = getVal('sale_price'); // 매매가
+                const loan = getVal('current_loan'); // 융자
+                const totalDeposit = getVal('total_deposit'); // 총보증금
+                const monthlyIncome = getVal('total_monthly_income'); // 월 총수입
+                const interestRate = getVal('loan_interest_rate'); // 이자율(%)
 
-            const actualInvestment = salePrice - loan - totalDeposit;
-            const annualInterest = loan * (interestRate / 100);
-            const monthlyInterest = annualInterest / 12;
-            const netMonthlyIncome = monthlyIncome - monthlyInterest;
-            
-            let roi = 0;
-            if (actualInvestment > 0) {
-                roi = ((netMonthlyIncome * 12) / actualInvestment) * 100;
-            }
+                const actualInvestment = salePrice - loan - totalDeposit;
+                const annualInterest = loan * (interestRate / 100);
+                const monthlyInterest = annualInterest / 12;
+                const netMonthlyIncome = monthlyIncome - monthlyInterest;
+                
+                let roi = 0;
+                if (actualInvestment > 0) {
+                    roi = ((netMonthlyIncome * 12) / actualInvestment) * 100;
+                }
 
-            const invEl = editorEl.querySelector('#ad-calc-investment');
-            const netEl = editorEl.querySelector('#ad-calc-monthly-net');
-            const roiEl = editorEl.querySelector('#ad-calc-roi');
+                const invEl = editorEl.querySelector('#ad-calc-investment');
+                const netEl = editorEl.querySelector('#ad-calc-monthly-net');
+                const roiEl = editorEl.querySelector('#ad-calc-roi');
 
-            if (invEl) invEl.innerText = (actualInvestment > 0 ? actualInvestment.toLocaleString() : '0') + '만원';
-            if (netEl) netEl.innerText = Math.round(netMonthlyIncome).toLocaleString() + '만원';
-            if (roiEl) roiEl.innerText = (roi > 0 ? roi.toFixed(2) : '0.00') + '%';
+                if (invEl) invEl.innerText = (actualInvestment > 0 ? actualInvestment.toLocaleString() : '0') + '만원';
+                if (netEl) netEl.innerText = Math.round(netMonthlyIncome).toLocaleString() + '만원';
+                if (roiEl) roiEl.innerText = (roi > 0 ? roi.toFixed(2) : '0.00') + '%';
 
-            const expRoiEl = editorEl.querySelector('#ad-field-expected_roi');
-            if (expRoiEl && roi > 0) {
-                expRoiEl.value = roi.toFixed(2) + '%';
+                const expRoiEl = editorEl.querySelector('#ad-field-expected_roi');
+                if (expRoiEl && roi > 0) {
+                    expRoiEl.value = roi.toFixed(2) + '%';
+                }
+            } catch (error) {
+                console.error("calculateAdROI Error:", error);
             }
         }
 
         function bindAdCalcEvents(editorEl = document.getElementById('ads-editor-view')) {
-            if (!editorEl) return;
-            const calcFields = ['sale_price', 'current_loan', 'total_deposit', 'total_monthly_income', 'loan_interest_rate'];
-            calcFields.forEach(fieldId => {
-                const el = editorEl.querySelector(`#ad-field-${fieldId}`);
-                if (el) {
-                    el.addEventListener('input', () => calculateAdROI(editorEl));
-                }
-            });
-            calculateAdROI(editorEl);
+            try {
+                if (!editorEl) return;
+                const calcFields = ['sale_price', 'current_loan', 'total_deposit', 'total_monthly_income', 'loan_interest_rate'];
+                calcFields.forEach(fieldId => {
+                    const el = editorEl.querySelector(`#ad-field-${fieldId}`);
+                    if (el) {
+                        el.addEventListener('input', () => calculateAdROI(editorEl));
+                    }
+                });
+                calculateAdROI(editorEl);
+            } catch (error) {
+                console.error("bindAdCalcEvents Error:", error);
+            }
         }
 
         function openAdEditor(id) {
