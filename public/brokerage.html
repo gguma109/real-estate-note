@@ -1660,14 +1660,14 @@
         }
 
         function closeRentalEditor(fromPopState = false) {
-            if (!fromPopState && history.state && history.state.isAppEditor) {
-                history.back();
-                return;
-            }
             document.getElementById('rental-editor-view').classList.add('hidden');
             document.getElementById('rental-list-view').classList.remove('hidden');
             // 에디터 닫을 때 목록에 변경사항 즉시 반영
             renderRentals();
+
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+            }
         }
 
         async function copyTextToClipboard(text) {
@@ -1850,16 +1850,16 @@
         }
 
         function closeNoteEditor(fromPopState = false) {
-            if (!fromPopState && history.state && history.state.isAppEditor) {
-                history.back();
-                return;
-            }
             // 즉시 저장 한 번 시도
             saveCurrentNoteState();
 
             document.getElementById('note-editor-view').classList.add('hidden');
             document.getElementById('notes-list-view').classList.remove('hidden');
             renderNotesList();
+
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+            }
         }
 
         function toggleNoteShare(checkbox) {
@@ -3213,13 +3213,13 @@
         }
 
         function closeAdEditor(fromPopState = false) {
-            if (!fromPopState && history.state && history.state.isAppEditor) {
-                history.back();
-                return;
-            }
             document.getElementById('ads-editor-view').classList.add('hidden');
             document.getElementById('ads-list-view').classList.remove('hidden');
             renderAdsList();
+
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+            }
         }
 
         async function deleteAd(id) {

@@ -1395,13 +1395,13 @@
         }
 
         function closeMoveoutEditor(fromPopState = false) {
-            if (!fromPopState && history.state && history.state.isAppEditor) {
-                history.back();
-                return;
-            }
             document.getElementById('moveout-editor-view').classList.add('hidden');
             document.getElementById('moveout-list-view').classList.remove('hidden');
             renderMoveouts();
+
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+            }
         }
 
         async function saveMoveoutToCloud() {
@@ -2133,14 +2133,14 @@
         }
 
         function closeRentalEditor(fromPopState = false) {
-            if (!fromPopState && history.state && history.state.isAppEditor) {
-                history.back();
-                return;
-            }
             document.getElementById('rental-editor-view').classList.add('hidden');
             document.getElementById('rental-list-view').classList.remove('hidden');
             // 에디터 닫을 때 목록에 변경사항 즉시 반영
             renderRentals();
+
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+            }
         }
 
         async function copyToClipboard(id) {
@@ -2273,16 +2273,16 @@
         }
 
         function closeNoteEditor(fromPopState = false) {
-            if (!fromPopState && history.state && history.state.isAppEditor) {
-                history.back();
-                return;
-            }
             // 즉시 저장 한 번 시도
             saveCurrentNoteState();
 
             document.getElementById('note-editor-view').classList.add('hidden');
             document.getElementById('notes-list-view').classList.remove('hidden');
             renderNotesList();
+
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+            }
         }
 
         function toggleNoteShare(checkbox) {
@@ -2678,13 +2678,13 @@
         }
 
         function closeGasEditor(fromPopState = false) {
-            if (!fromPopState && history.state && history.state.isAppEditor) {
-                history.back();
-                return;
-            }
             document.getElementById('gas-list-view').classList.remove('hidden');
             document.getElementById('gas-editor-view').classList.add('hidden');
             document.getElementById('gas-editor-view').classList.remove('flex');
+
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+            }
         }
 
         function addGasMeter() {
@@ -3144,13 +3144,13 @@
         }
         
         function closeSettlementEditor(fromPopState = false) {
-            if (!fromPopState && history.state && history.state.isAppEditor) {
-                history.back();
-                return;
-            }
             document.getElementById('calc-editor-view').classList.add('hidden');
             document.getElementById('calc-list-view').classList.remove('hidden');
             renderSettlements();
+
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+            }
         }
 
         async function saveSettlementToCloud() {
