@@ -1028,12 +1028,24 @@
         window.addEventListener('popstate', (event) => {
             const rentalEditor = document.getElementById('rental-editor-view');
             const noteEditor = document.getElementById('note-editor-view');
+            const moveoutEditor = document.getElementById('moveout-editor-view');
+            const gasEditor = document.getElementById('gas-editor-view');
+            const calcEditor = document.getElementById('calc-editor-view');
 
             if (rentalEditor && !rentalEditor.classList.contains('hidden')) {
                 closeRentalEditor(true);
             }
             if (noteEditor && !noteEditor.classList.contains('hidden')) {
                 closeNoteEditor(true);
+            }
+            if (moveoutEditor && !moveoutEditor.classList.contains('hidden')) {
+                closeMoveoutEditor(true);
+            }
+            if (gasEditor && !gasEditor.classList.contains('hidden')) {
+                closeGasEditor(true);
+            }
+            if (calcEditor && !calcEditor.classList.contains('hidden')) {
+                closeSettlementEditor(true);
             }
         });
 
@@ -1331,6 +1343,8 @@
             const m = moveouts.find(item => item.id === id);
             if (!m) return;
 
+            pushAppEditorState('moveout');
+
             document.getElementById('moveout-list-view').classList.add('hidden');
             document.getElementById('moveout-editor-view').classList.remove('hidden');
 
@@ -1380,8 +1394,11 @@
             }
         }
 
-        function closeMoveoutEditor() {
-            // 목록으로 돌아갈 때 자동저장을 한 번 시도할 수 있지만 명시적 저장이 나음.
+        function closeMoveoutEditor(fromPopState = false) {
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+                return;
+            }
             document.getElementById('moveout-editor-view').classList.add('hidden');
             document.getElementById('moveout-list-view').classList.remove('hidden');
             renderMoveouts();
@@ -2620,6 +2637,8 @@
         }
 
         function openGasEditor(gasData) {
+            pushAppEditorState('gas');
+
             document.getElementById('gas-list-view').classList.add('hidden');
             document.getElementById('gas-editor-view').classList.remove('hidden');
             document.getElementById('gas-editor-view').classList.add('flex');
@@ -2658,7 +2677,11 @@
             }
         }
 
-        function closeGasEditor() {
+        function closeGasEditor(fromPopState = false) {
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+                return;
+            }
             document.getElementById('gas-list-view').classList.remove('hidden');
             document.getElementById('gas-editor-view').classList.add('hidden');
             document.getElementById('gas-editor-view').classList.remove('flex');
@@ -3089,6 +3112,8 @@
         }
 
         function openSettlementEditor(id) {
+            pushAppEditorState('settlement');
+
             document.getElementById('calc-list-view').classList.add('hidden');
             document.getElementById('calc-editor-view').classList.remove('hidden');
             
@@ -3118,7 +3143,11 @@
             }
         }
         
-        function closeSettlementEditor() {
+        function closeSettlementEditor(fromPopState = false) {
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+                return;
+            }
             document.getElementById('calc-editor-view').classList.add('hidden');
             document.getElementById('calc-list-view').classList.remove('hidden');
             renderSettlements();
