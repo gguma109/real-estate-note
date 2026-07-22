@@ -3266,6 +3266,15 @@
                 }
             }
 
+            const mainCategories = [
+                '원.투.쓰리룸&공동주택', '상가', '건물매매', '단독/전원주택', '토지', '기타',
+                '원룸', '1.5룸', '투룸', '쓰리룸', '아파트', '빌라', '주택', '건물', '주택&건물 통매매'
+            ];
+            let adType = r.type || '';
+            if (mainCategories.includes(adType)) {
+                adType = '';
+            }
+
             const newAdData = {
                 address: r.address || '',
                 room_no: r.room || '',
@@ -3279,7 +3288,7 @@
                 structure: r.structure || '',
                 notes: r.special_notes || '',
                 usage_type: usageType,
-                type: r.type || '',
+                type: adType,
                 area: r.exclusive_area || r.supply_area || '',
                 maintenance: r.maintenance || '',
                 maintenance_detail: r.maintenance_detail || '',
