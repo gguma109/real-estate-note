@@ -651,6 +651,34 @@
             showToast(msg, 'info', 3500);
         };
 
+        // ===== SPA 뒤로가기(모바일 백버튼/브라우저 뒤로가기) 제어 =====
+        function pushAppEditorState(editorType) {
+            if (!history.state || !history.state.isAppEditor) {
+                history.pushState({ isAppEditor: true, editorType: editorType }, '', window.location.href);
+            }
+        }
+
+        window.addEventListener('popstate', (event) => {
+            const rentalEditor = document.getElementById('rental-editor-view');
+            const adEditor = document.getElementById('ads-editor-view');
+            const noteEditor = document.getElementById('note-editor-view');
+
+            if (rentalEditor && !rentalEditor.classList.contains('hidden')) {
+                closeRentalEditor(true);
+            }
+            if (adEditor && !adEditor.classList.contains('hidden')) {
+                closeAdEditor(true);
+            }
+            if (noteEditor && !noteEditor.classList.contains('hidden')) {
+                closeNoteEditor(true);
+            }
+
+            const categoryModal = document.getElementById('adCategoryModal');
+            if (categoryModal && !categoryModal.classList.contains('hidden')) {
+                if (typeof hideAdCategoryModal === 'function') hideAdCategoryModal();
+            }
+        });
+
         // --- 1. 상태, 인증 및 네비게이션 관리 ---
         let currentUserId = null;
         let currentUserEmail = null;
@@ -1130,6 +1158,8 @@
         function openRentalEditor(id) {
             const r = rentals.find(item => item.id === id);
             if (!r) return;
+
+            pushAppEditorState('rental');
 
             document.getElementById('rental-list-view').classList.add('hidden');
             document.getElementById('rental-editor-view').classList.remove('hidden');
@@ -1629,7 +1659,11 @@
             closeRentalEditor();
         }
 
-        function closeRentalEditor() {
+        function closeRentalEditor(fromPopState = false) {
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+                return;
+            }
             document.getElementById('rental-editor-view').classList.add('hidden');
             document.getElementById('rental-list-view').classList.remove('hidden');
             // 에디터 닫을 때 목록에 변경사항 즉시 반영
@@ -1780,6 +1814,8 @@
             const note = notes.find(n => n.id === id);
             if (!note) return;
 
+            pushAppEditorState('note');
+
             document.getElementById('notes-list-view').classList.add('hidden');
             document.getElementById('note-editor-view').classList.remove('hidden');
 
@@ -1813,7 +1849,11 @@
             }
         }
 
-        function closeNoteEditor() {
+        function closeNoteEditor(fromPopState = false) {
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+                return;
+            }
             // 즉시 저장 한 번 시도
             saveCurrentNoteState();
 
@@ -2302,6 +2342,8 @@
         function openAdEditor(id) {
             const ad = ads.find(a => a.id === id);
             if (!ad) return;
+
+            pushAppEditorState('ad');
 
             const completeBtn = document.getElementById('ad-editor-complete-btn');
             if (completeBtn) {
@@ -3154,7 +3196,11 @@
             }
         }
 
-        function closeAdEditor() {
+        function closeAdEditor(fromPopState = false) {
+            if (!fromPopState && history.state && history.state.isAppEditor) {
+                history.back();
+                return;
+            }
             document.getElementById('ads-editor-view').classList.add('hidden');
             document.getElementById('ads-list-view').classList.remove('hidden');
             renderAdsList();
