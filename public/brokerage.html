@@ -1036,7 +1036,7 @@
         }
 
         async function deleteRental(id) {
-            if (confirm('클라우드 서버에서 이 매물 카드를 영구 삭제하시겠습니까?')) {
+            if (confirm('이 매물을 휴지통으로 이동하시겠습니까?')) {
                 // 낙관적 UI 삭제
                 rentals = rentals.filter(r => r.id !== id);
                 renderRentals();
