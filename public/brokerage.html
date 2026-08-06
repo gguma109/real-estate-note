@@ -2725,14 +2725,22 @@
                                 <input type="text" id="ad-field-premium" value="${data.premium || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
                             </div>
                         </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">방향</label>
+                            <input type="text" id="ad-field-direction" value="${data.direction || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 남향">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">구조</label>
+                            <textarea id="ad-field-structure" rows="5" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 resize-y" placeholder="건물 내부 구조를 입력하세요">${data.structure || ''}</textarea>
+                        </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-bold text-gray-500 mb-1">방향</label>
-                                <input type="text" id="ad-field-direction" value="${data.direction || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">난방 연료</label>
+                                <input type="text" id="ad-field-heating" value="${data.heating || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: LPG, 도시가스">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-500 mb-1">구조</label>
-                                <input type="text" id="ad-field-structure" value="${data.structure || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">옵션</label>
+                                <input type="text" id="ad-field-options" value="${data.options || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 냉난방기, 집기류">
                             </div>
                         </div>
                         <div class="grid grid-cols-2 gap-3">
@@ -2887,19 +2895,35 @@
                                 <input type="text" id="ad-field-maintenance" value="${data.maintenance || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
                             </div>
                         </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">관리비 세부내역</label>
+                            <input type="text" id="ad-field-maintenance_detail" value="${data.maintenance_detail || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 전기, 수도, 인터넷 등">
+                        </div>
                         <div class="grid grid-cols-2 gap-3">
                             <div>
-                                <label class="block text-xs font-bold text-gray-500 mb-1">관리비 세부내역</label>
-                                <input type="text" id="ad-field-maintenance_detail" value="${data.maintenance_detail || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 전기, 수도, 인터넷 등">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">방향</label>
+                                <input type="text" id="ad-field-direction" value="${data.direction || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 남향">
                             </div>
                             <div>
-                                <label class="block text-xs font-bold text-gray-500 mb-1">예상수익률</label>
-                                <input type="text" id="ad-field-expected_roi" value="${data.expected_roi || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 5.5%">
+                                <label class="block text-xs font-bold text-gray-500 mb-1">난방 연료</label>
+                                <input type="text" id="ad-field-heating" value="${data.heating || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: LPG, 도시가스">
                             </div>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">구조</label>
+                            <textarea id="ad-field-structure" rows="5" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500 resize-y" placeholder="건물 내부 구조를 입력하세요">${data.structure || ''}</textarea>
+                        </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">옵션</label>
+                            <input type="text" id="ad-field-options" value="${data.options || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 에어컨, 붙박이장, 가전 등">
+                        </div>
+                        <div class="${category === '단독/전원주택' ? 'hidden' : ''}">
+                            <label class="block text-xs font-bold text-gray-500 mb-1">예상수익률</label>
+                            <input type="text" id="ad-field-expected_roi" value="${data.expected_roi || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 5.5%">
                         </div>
 
                         <!-- 건물/상가 수익률 분석표 -->
-                        <div class="grid grid-cols-2 gap-3 pt-3 border-t-2 border-dashed border-gray-200 mt-2">
+                        <div class="grid grid-cols-2 gap-3 pt-3 border-t-2 border-dashed border-gray-200 mt-2 ${category === '단독/전원주택' ? 'hidden' : ''}">
                             <div class="col-span-2 bg-indigo-50 text-indigo-800 text-xs font-bold px-3 py-1.5 rounded-md mb-1 inline-block w-max">
                                 📊 건물/상가 수익률 분석표
                             </div>
