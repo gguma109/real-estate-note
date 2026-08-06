@@ -2917,6 +2917,10 @@
                             <label class="block text-xs font-bold text-gray-500 mb-1">옵션</label>
                             <input type="text" id="ad-field-options" value="${data.options || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 에어컨, 붙박이장, 가전 등">
                         </div>
+                        <div>
+                            <label class="block text-xs font-bold text-gray-500 mb-1">입주정보</label>
+                            <input type="text" id="ad-field-move_in_info" value="${data.move_in_info || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 즉시 입주, 협의 가능">
+                        </div>
                         <div class="${category === '단독/전원주택' ? 'hidden' : ''}">
                             <label class="block text-xs font-bold text-gray-500 mb-1">예상수익률</label>
                             <input type="text" id="ad-field-expected_roi" value="${data.expected_roi || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500" placeholder="예: 5.5%">
@@ -3372,6 +3376,7 @@
                 biz_name: r.business_name || '',
                 options: r.options || '',
                 structure: r.structure || '',
+                move_in_info: r.movein || '',
                 notes: r.special_notes || '',
                 usage_type: usageType,
                 type: adType,
