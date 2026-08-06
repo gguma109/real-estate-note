@@ -57,6 +57,22 @@ let formatterInitialized = false;
 
 function formatterKeyName(provider) { return `realEstateFormatterApiKey:${provider}`; }
 
+function normalizeFormatterApiKey(rawKey, provider) {
+    const cleaned = String(rawKey || '').trim().replace(/[\u200B-\u200D\uFEFF]/g, '');
+    const patterns = {
+        gemini: /AIza[0-9A-Za-z_-]{20,}/,
+        openai: /sk-[0-9A-Za-z_-]{20,}/,
+        claude: /sk-ant-[0-9A-Za-z_-]{20,}/
+    };
+    const match = cleaned.match(patterns[provider]);
+    const key = match ? match[0] : cleaned;
+    if (!key) throw new Error('API 키를 입력해 주세요.');
+    if (!/^[\x21-\x7E]+$/.test(key)) {
+        throw new Error('API 키에 한글이나 공백이 포함되어 있습니다. 발급 화면에서 API 키 문자열만 다시 복사해 주세요.');
+    }
+    return key;
+}
+
 function initializeFormatter() {
     if (formatterInitialized) return;
     formatterInitialized = true;
@@ -96,7 +112,16 @@ function clearFormatterApiKey() {
 
 function saveFormatterSettings(showMessage = true) {
     const provider = document.getElementById('formatter-provider').value;
-    const apiKey = document.getElementById('formatter-api-key').value.trim();
+    let apiKey = document.getElementById('formatter-api-key').value.trim();
+    if (apiKey) {
+        try {
+            apiKey = normalizeFormatterApiKey(apiKey, provider);
+            document.getElementById('formatter-api-key').value = apiKey;
+        } catch (error) {
+            if (showMessage) showToast(error.message, 'warning');
+            return false;
+        }
+    }
     localStorage.setItem('realEstateFormatterProvider', provider);
     localStorage.setItem(`realEstateFormatterModel:${provider}`, document.getElementById('formatter-model').value);
     localStorage.setItem('realEstateFormatterWebSearch', document.getElementById('formatter-web-search').checked);
@@ -104,6 +129,7 @@ function saveFormatterSettings(showMessage = true) {
     if (document.getElementById('formatter-save-key').checked && apiKey) localStorage.setItem(formatterKeyName(provider), apiKey);
     else localStorage.removeItem(formatterKeyName(provider));
     if (showMessage) showToast('API 및 프롬프트 설정을 저장했습니다.', 'success');
+    return true;
 }
 
 function restoreFormatterPrompt() {
@@ -172,13 +198,16 @@ async function generateFormattedAd() {
     initializeFormatter();
     const input = document.getElementById('formatter-input').value.trim();
     const provider = document.getElementById('formatter-provider').value;
-    const apiKey = document.getElementById('formatter-api-key').value.trim();
     if (!input) return showToast('원본 매물 정보를 입력해 주세요.', 'warning');
-    if (!apiKey) {
+    let apiKey;
+    try {
+        apiKey = normalizeFormatterApiKey(document.getElementById('formatter-api-key').value, provider);
+        document.getElementById('formatter-api-key').value = apiKey;
+    } catch (error) {
         document.getElementById('formatter-settings').classList.remove('hidden');
-        return showToast('본인의 API 키를 먼저 입력해 주세요.', 'warning');
+        return showToast(error.message, 'warning');
     }
-    saveFormatterSettings(false);
+    if (!saveFormatterSettings(false)) return;
     const button = document.getElementById('formatter-generate-btn');
     button.disabled = true; button.textContent = '변환 중...';
     try {
