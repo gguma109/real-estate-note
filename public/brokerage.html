@@ -283,6 +283,8 @@
                     <button onclick="switchTab('ads')" id="tab-ads"
                         class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2">광고매물
                         <span id="sync-icon-ads" class="hidden w-2 h-2 rounded-full bg-green-500"></span></button>
+                    <button onclick="switchTab('formatter')" id="tab-formatter"
+                        class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2">양식 변환기</button>
                     <button onclick="switchTab('notes')" id="tab-notes"
                         class="flex-1 py-3 text-center text-sm font-bold border-b-2 text-gray-400 border-transparent transition-all flex justify-center items-center gap-2">메모장
                         <span id="sync-icon-notes" class="hidden w-2 h-2 rounded-full bg-green-500"></span></button>
@@ -524,6 +526,79 @@
                     
                     <div id="ad-editor-content" class="p-4 flex-1 overflow-y-auto bg-white">
                         <!-- Dynamic form will be rendered here -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- ===== TAB: 양식 변환기 ===== -->
+            <div id="content-formatter" class="hidden flex-1 flex-col bg-gray-50">
+                <div class="w-full max-w-5xl mx-auto p-4 md:p-6 space-y-4 pb-24">
+                    <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 md:p-5">
+                        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
+                            <div>
+                                <h2 class="text-lg font-black text-gray-800">AI 부동산 양식 변환기</h2>
+                                <p class="text-xs text-gray-500 mt-1">광고매물에서 복사한 내용을 붙여넣고 광고 문구로 변환하세요.</p>
+                            </div>
+                            <button onclick="toggleFormatterSettings()" class="px-3 py-2 rounded-lg border border-gray-200 bg-gray-50 text-xs font-bold text-gray-600 hover:bg-gray-100">⚙ API·프롬프트 설정</button>
+                        </div>
+
+                        <div id="formatter-settings" class="hidden mb-5 p-4 bg-slate-50 border border-slate-200 rounded-xl space-y-4">
+                            <div class="grid md:grid-cols-2 gap-3">
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">AI 공급자</label>
+                                    <select id="formatter-provider" onchange="updateFormatterProviderUI()" class="w-full border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm">
+                                        <option value="gemini">Google Gemini</option>
+                                        <option value="openai">OpenAI GPT</option>
+                                        <option value="claude">Anthropic Claude</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label class="block text-xs font-bold text-gray-600 mb-1">모델</label>
+                                    <select id="formatter-model" class="w-full border border-gray-200 rounded-lg px-3 py-2 bg-white text-sm"></select>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">본인 API 키</label>
+                                <div class="flex gap-2">
+                                    <input id="formatter-api-key" type="password" autocomplete="off" class="flex-1 border border-gray-200 rounded-lg px-3 py-2 text-sm" placeholder="선택한 공급자의 API 키 입력">
+                                    <button type="button" onclick="toggleFormatterApiKey()" class="px-3 rounded-lg border bg-white text-xs font-bold">보기</button>
+                                    <button type="button" onclick="clearFormatterApiKey()" class="px-3 rounded-lg border border-red-200 bg-red-50 text-red-600 text-xs font-bold">삭제</button>
+                                </div>
+                                <label class="mt-2 flex items-center gap-2 text-xs text-gray-600"><input id="formatter-save-key" type="checkbox" checked> 이 브라우저에 API 키 저장</label>
+                            </div>
+                            <label id="formatter-search-wrap" class="flex items-center gap-2 text-xs text-gray-700"><input id="formatter-web-search" type="checkbox"> 주소 주변 시설·개발 호재 웹 검색 사용 (Gemini 결제 설정 필요)</label>
+                            <div>
+                                <div class="flex flex-wrap justify-between items-center gap-2 mb-1">
+                                    <label class="text-xs font-bold text-gray-600">내용 프롬프트</label>
+                                    <div class="flex gap-2">
+                                        <button type="button" onclick="restoreFormatterPrompt()" class="px-2 py-1 text-[11px] font-bold border rounded bg-white">기본값 복원</button>
+                                        <button type="button" onclick="saveFormatterSettings()" class="px-3 py-1 text-[11px] font-bold rounded bg-primary text-white">설정 저장</button>
+                                    </div>
+                                </div>
+                                <textarea id="formatter-prompt" rows="12" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs leading-relaxed resize-y" placeholder="AI가 따를 광고문 작성 규칙을 입력하세요."></textarea>
+                                <p class="text-[11px] text-gray-400 mt-1">프롬프트도 이 브라우저에만 저장됩니다.</p>
+                            </div>
+                        </div>
+
+                        <label class="block text-sm font-bold text-gray-700 mb-2">1. 원본 매물 정보</label>
+                        <textarea id="formatter-input" rows="9" class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm leading-relaxed resize-y focus:border-primary outline-none" placeholder="광고매물의 [복사] 버튼으로 복사한 내용을 여기에 붙여넣으세요."></textarea>
+                        <div class="flex flex-wrap gap-2 mt-3">
+                            <button id="formatter-generate-btn" onclick="generateFormattedAd()" class="px-5 py-2.5 rounded-xl bg-primary text-white text-sm font-black shadow-sm hover:bg-blue-700">양식 변환하기</button>
+                            <button onclick="pasteFormatterInput()" class="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-600 text-sm font-bold">붙여넣기</button>
+                            <button onclick="clearFormatterAll()" class="px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-gray-500 text-sm font-bold">내용 지우기</button>
+                        </div>
+                    </div>
+
+                    <div class="grid lg:grid-cols-2 gap-4">
+                        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4">
+                            <div class="flex justify-between items-center mb-2"><label class="text-sm font-bold text-gray-700">2. 완성된 제목</label><button onclick="copyFormatterTitle()" class="text-xs font-bold text-primary bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5">제목 복사</button></div>
+                            <textarea id="formatter-title" rows="3" class="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm font-bold resize-y" placeholder="변환된 제목이 표시됩니다."></textarea>
+                        </div>
+                        <div class="bg-white rounded-2xl border border-gray-200 shadow-sm p-4 lg:row-span-2">
+                            <div class="flex justify-between items-center mb-2"><label class="text-sm font-bold text-gray-700">3. 완성된 내용</label><button onclick="copyFormatterContent()" class="text-xs font-bold text-primary bg-blue-50 border border-blue-100 rounded-lg px-3 py-1.5">내용 복사</button></div>
+                            <textarea id="formatter-content" rows="20" class="w-full border border-gray-200 rounded-xl px-3 py-3 text-sm leading-relaxed resize-y" placeholder="변환된 광고 내용이 표시됩니다."></textarea>
+                        </div>
+                        <button onclick="copyFormatterAll()" class="w-full px-5 py-3 rounded-xl bg-gray-800 text-white text-sm font-black">제목 + 내용 전체 복사</button>
                     </div>
                 </div>
             </div>
@@ -810,10 +885,12 @@
             const rBtn = document.getElementById('tab-rental');
             const nBtn = document.getElementById('tab-notes');
             const aBtn = document.getElementById('tab-ads');
+            const fBtn = document.getElementById('tab-formatter');
             const tBtn = document.getElementById('tab-trash');
             const rContent = document.getElementById('content-rental');
             const nContent = document.getElementById('content-notes');
             const aContent = document.getElementById('content-ads');
+            const fContent = document.getElementById('content-formatter');
             const tContent = document.getElementById('content-trash');
 
             const activeClass = "flex-1 py-3 text-center text-sm font-bold border-b-2 text-primary border-primary transition-all flex justify-center items-center gap-2";
@@ -822,11 +899,13 @@
             if(rBtn) rBtn.className = inactiveClass;
             if(nBtn) nBtn.className = inactiveClass;
             if(aBtn) aBtn.className = inactiveClass;
+            if(fBtn) fBtn.className = inactiveClass;
             if(tBtn) tBtn.className = inactiveClass;
 
             if(rContent) rContent.classList.add('hidden');
             if(nContent) nContent.classList.add('hidden');
             if(aContent) aContent.classList.add('hidden');
+            if(fContent) fContent.classList.add('hidden');
             if(tContent) tContent.classList.add('hidden');
             document.body.classList.remove('pb-28');
 
@@ -870,6 +949,13 @@
                     document.getElementById('sync-icon-ads').classList.remove('hidden');
                     setTimeout(() => document.getElementById('sync-icon-ads').classList.add('hidden'), 2000);
                 }
+            } else if (tab === 'formatter') {
+                if(fBtn) fBtn.className = activeClass;
+                if(fContent) {
+                    fContent.classList.remove('hidden');
+                    fContent.classList.add('flex');
+                }
+                initializeFormatter();
             } else if (tab === 'trash') {
                 if(tBtn) tBtn.className = activeClass;
                 if(tContent) {
@@ -3651,6 +3737,7 @@
             }
         }
     </script>
+    <script src="/formatter.js"></script>
 </body>
 
 </html>
