@@ -54,8 +54,9 @@ const FORMATTER_DEFAULT_PROMPT = `당신은 제주도 정인부동산의 20년 �
 - 입력에 없는 사실을 만들지 않습니다.`;
 
 let formatterInitialized = false;
-
-function formatterKeyName(provider) { return `realEstateFormatterApiKey:${provider}`; }
+let formatterInitializationPromise = null;
+let formatterAccountReady = false;
+let formatterProviderSettings = {};
 
 function normalizeFormatterApiKey(rawKey, provider) {
     const cleaned = String(rawKey || '').trim().replace(/[\u200B-\u200D\uFEFF]/g, '');
@@ -73,23 +74,147 @@ function normalizeFormatterApiKey(rawKey, provider) {
     return key;
 }
 
+async function formatterRequest(url, options = {}) {
+    const response = await fetch(url, {
+        ...options,
+        credentials: 'same-origin',
+        headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) {
+        const error = new Error(data.error || `HTTP ${response.status}`);
+        error.status = response.status;
+        throw error;
+    }
+    return data;
+}
+
+async function createFormatterSession(credential) {
+    try {
+        await formatterRequest('/api/formatter-session', {
+            method: 'POST',
+            body: JSON.stringify({ credential })
+        });
+        formatterAccountReady = true;
+        formatterInitialized = false;
+        formatterInitializationPromise = null;
+        return true;
+    } catch (error) {
+        console.error('양식변환기 로그인 세션 생성 실패', error);
+        formatterAccountReady = false;
+        return false;
+    }
+}
+
+async function destroyFormatterSession() {
+    try {
+        await formatterRequest('/api/formatter-session', { method: 'DELETE' });
+    } catch (error) {
+        console.error('양식변환기 로그인 세션 종료 실패', error);
+    } finally {
+        formatterAccountReady = false;
+        formatterInitialized = false;
+        formatterInitializationPromise = null;
+        formatterProviderSettings = {};
+    }
+}
+
+async function migrateLegacyFormatterSettings(settings) {
+    if (Object.keys(settings.providers || {}).length > 0) return settings;
+
+    const providers = ['gemini', 'openai', 'claude'];
+    const savedProvider = localStorage.getItem('realEstateFormatterProvider');
+    const legacyProvider = providers.includes(savedProvider) ? savedProvider : 'gemini';
+    const legacyPrompt = localStorage.getItem('realEstateFormatterPrompt');
+    const legacyWebSearch = localStorage.getItem('realEstateFormatterWebSearch') === 'true';
+    const hasLegacySettings = legacyPrompt || providers.some(provider =>
+        localStorage.getItem(`realEstateFormatterApiKey:${provider}`) ||
+        localStorage.getItem(`realEstateFormatterModel:${provider}`)
+    );
+    if (!hasLegacySettings) return settings;
+
+    const orderedProviders = providers.filter(provider => provider !== legacyProvider).concat(legacyProvider);
+    let migratedSettings = settings;
+    for (const provider of orderedProviders) {
+        const apiKey = localStorage.getItem(`realEstateFormatterApiKey:${provider}`) || '';
+        const savedModel = localStorage.getItem(`realEstateFormatterModel:${provider}`);
+        if (provider !== legacyProvider && !apiKey && !savedModel) continue;
+        const allowedModels = FORMATTER_MODELS[provider].map(([, value]) => value);
+        const model = allowedModels.includes(savedModel) ? savedModel : allowedModels[0];
+        const result = await formatterRequest('/api/formatter-settings', {
+            method: 'PUT',
+            body: JSON.stringify({
+                provider,
+                model,
+                prompt: legacyPrompt || FORMATTER_DEFAULT_PROMPT,
+                webSearch: legacyWebSearch,
+                apiKey
+            })
+        });
+        migratedSettings = result.settings;
+    }
+
+    localStorage.removeItem('realEstateFormatterProvider');
+    localStorage.removeItem('realEstateFormatterPrompt');
+    localStorage.removeItem('realEstateFormatterWebSearch');
+    for (const provider of providers) {
+        localStorage.removeItem(`realEstateFormatterApiKey:${provider}`);
+        localStorage.removeItem(`realEstateFormatterModel:${provider}`);
+    }
+    showToast('이 브라우저의 기존 양식변환기 설정을 사이트 ID로 이전했습니다.', 'success');
+    return migratedSettings;
+}
+
+async function loadFormatterSettings() {
+    const status = document.getElementById('formatter-api-key-status');
+    status.textContent = '사이트 ID의 설정을 불러오는 중입니다...';
+    try {
+        let settings = await formatterRequest('/api/formatter-settings');
+        settings = await migrateLegacyFormatterSettings(settings);
+        formatterAccountReady = true;
+        formatterProviderSettings = settings.providers || {};
+        document.getElementById('formatter-provider').value = settings.provider || 'gemini';
+        document.getElementById('formatter-prompt').value = settings.prompt || FORMATTER_DEFAULT_PROMPT;
+        document.getElementById('formatter-web-search').checked = Boolean(settings.webSearch);
+        updateFormatterProviderUI();
+    } catch (error) {
+        formatterAccountReady = false;
+        formatterProviderSettings = {};
+        document.getElementById('formatter-provider').value = 'gemini';
+        document.getElementById('formatter-prompt').value = FORMATTER_DEFAULT_PROMPT;
+        document.getElementById('formatter-web-search').checked = false;
+        updateFormatterProviderUI();
+        status.textContent = error.status === 401
+            ? '사이트 ID 설정을 사용하려면 로그아웃 후 Google로 다시 로그인해 주세요.'
+            : `설정을 불러오지 못했습니다: ${error.message}`;
+        status.className = 'mt-2 text-xs text-red-500';
+    }
+}
+
 function initializeFormatter() {
-    if (formatterInitialized) return;
+    if (formatterInitialized) return formatterInitializationPromise || Promise.resolve();
     formatterInitialized = true;
-    const provider = localStorage.getItem('realEstateFormatterProvider') || 'gemini';
-    document.getElementById('formatter-provider').value = provider;
-    document.getElementById('formatter-prompt').value = localStorage.getItem('realEstateFormatterPrompt') || FORMATTER_DEFAULT_PROMPT;
-    document.getElementById('formatter-web-search').checked = localStorage.getItem('realEstateFormatterWebSearch') === 'true';
-    updateFormatterProviderUI();
+    formatterInitializationPromise = loadFormatterSettings();
+    return formatterInitializationPromise;
 }
 
 function updateFormatterProviderUI() {
     const provider = document.getElementById('formatter-provider').value;
     const modelSelect = document.getElementById('formatter-model');
-    const savedModel = localStorage.getItem(`realEstateFormatterModel:${provider}`);
+    const savedModel = formatterProviderSettings[provider]?.model;
     modelSelect.innerHTML = FORMATTER_MODELS[provider].map(([label, value]) => `<option value="${value}">${label}</option>`).join('');
     if (savedModel && [...modelSelect.options].some(option => option.value === savedModel)) modelSelect.value = savedModel;
-    document.getElementById('formatter-api-key').value = localStorage.getItem(formatterKeyName(provider)) || '';
+    const apiKeyInput = document.getElementById('formatter-api-key');
+    const hasApiKey = Boolean(formatterProviderSettings[provider]?.hasApiKey);
+    apiKeyInput.value = '';
+    apiKeyInput.placeholder = hasApiKey ? '사이트 ID에 저장된 API 키 사용 중' : '선택한 공급자의 API 키 입력';
+    const status = document.getElementById('formatter-api-key-status');
+    if (formatterAccountReady) {
+        status.textContent = hasApiKey
+            ? '이 API 키는 사이트 ID에 안전하게 저장되어 다른 컴퓨터에서도 자동 사용됩니다.'
+            : 'API 키를 입력하고 저장하면 사이트 ID에 자동 저장됩니다.';
+        status.className = 'mt-2 text-xs text-gray-500';
+    }
     document.getElementById('formatter-search-wrap').classList.toggle('hidden', provider !== 'gemini');
 }
 
@@ -103,14 +228,22 @@ function toggleFormatterApiKey() {
     input.type = input.type === 'password' ? 'text' : 'password';
 }
 
-function clearFormatterApiKey() {
+async function clearFormatterApiKey() {
     const provider = document.getElementById('formatter-provider').value;
-    localStorage.removeItem(formatterKeyName(provider));
+    if (!formatterAccountReady) return showToast('사이트 ID로 다시 로그인해 주세요.', 'warning');
+    if (!formatterProviderSettings[provider]?.hasApiKey && !document.getElementById('formatter-api-key').value) {
+        return showToast('삭제할 API 키가 없습니다.', 'warning');
+    }
+    if (!confirm('이 사이트 ID에 저장된 API 키를 삭제할까요?')) return;
     document.getElementById('formatter-api-key').value = '';
-    showToast('저장된 API 키를 삭제했습니다.', 'success');
+    await saveFormatterSettings(true, true);
 }
 
-function saveFormatterSettings(showMessage = true) {
+async function saveFormatterSettings(showMessage = true, clearApiKey = false) {
+    if (!formatterAccountReady) {
+        if (showMessage) showToast('사이트 ID로 다시 로그인해 주세요.', 'warning');
+        return false;
+    }
     const provider = document.getElementById('formatter-provider').value;
     let apiKey = document.getElementById('formatter-api-key').value.trim();
     if (apiKey) {
@@ -122,21 +255,33 @@ function saveFormatterSettings(showMessage = true) {
             return false;
         }
     }
-    localStorage.setItem('realEstateFormatterProvider', provider);
-    localStorage.setItem(`realEstateFormatterModel:${provider}`, document.getElementById('formatter-model').value);
-    localStorage.setItem('realEstateFormatterWebSearch', document.getElementById('formatter-web-search').checked);
-    localStorage.setItem('realEstateFormatterPrompt', document.getElementById('formatter-prompt').value.trim() || FORMATTER_DEFAULT_PROMPT);
-    if (document.getElementById('formatter-save-key').checked && apiKey) localStorage.setItem(formatterKeyName(provider), apiKey);
-    else localStorage.removeItem(formatterKeyName(provider));
-    if (showMessage) showToast('API 및 프롬프트 설정을 저장했습니다.', 'success');
-    return true;
+    try {
+        const result = await formatterRequest('/api/formatter-settings', {
+            method: 'PUT',
+            body: JSON.stringify({
+                provider,
+                model: document.getElementById('formatter-model').value,
+                webSearch: document.getElementById('formatter-web-search').checked,
+                prompt: document.getElementById('formatter-prompt').value.trim() || FORMATTER_DEFAULT_PROMPT,
+                apiKey: clearApiKey ? '' : apiKey,
+                clearApiKey
+            })
+        });
+        formatterProviderSettings = result.settings?.providers || formatterProviderSettings;
+        document.getElementById('formatter-api-key').value = '';
+        updateFormatterProviderUI();
+        if (showMessage) showToast(clearApiKey ? '사이트 ID에 저장된 API 키를 삭제했습니다.' : '사이트 ID에 API 및 프롬프트 설정을 저장했습니다.', 'success');
+        return true;
+    } catch (error) {
+        if (showMessage) showToast(`설정 저장 실패: ${error.message}`, 'warning');
+        return false;
+    }
 }
 
-function restoreFormatterPrompt() {
+async function restoreFormatterPrompt() {
     if (!confirm('내용 프롬프트를 기본값으로 되돌릴까요?')) return;
     document.getElementById('formatter-prompt').value = FORMATTER_DEFAULT_PROMPT;
-    localStorage.setItem('realEstateFormatterPrompt', FORMATTER_DEFAULT_PROMPT);
-    showToast('기본 프롬프트로 복원했습니다.', 'success');
+    if (await saveFormatterSettings(false)) showToast('기본 프롬프트로 복원하고 사이트 ID에 저장했습니다.', 'success');
 }
 
 async function pasteFormatterInput() {
@@ -151,67 +296,24 @@ function clearFormatterAll() {
     ['formatter-input', 'formatter-title', 'formatter-content'].forEach(id => document.getElementById(id).value = '');
 }
 
-async function callFormatterApi(provider, apiKey, model, prompt, input, webSearch) {
-    if (provider === 'gemini') {
-        const payload = {
-            systemInstruction: { parts: [{ text: prompt }] },
-            contents: [{ role: 'user', parts: [{ text: input }] }]
-        };
-        if (webSearch) payload.tools = [{ google_search: {} }];
-        let lastError;
-        for (const version of ['v1', 'v1beta']) {
-            const response = await fetch(`https://generativelanguage.googleapis.com/${version}/models/${encodeURIComponent(model)}:generateContent`, {
-                method: 'POST', headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey }, body: JSON.stringify(payload)
-            });
-            if (response.ok) {
-                const data = await response.json();
-                return (data.candidates?.[0]?.content?.parts || []).map(part => part.text || '').join('\n');
-            }
-            lastError = await response.text();
-            if (response.status !== 404) throw new Error(formatterApiError(response.status, lastError));
-        }
-        throw new Error(formatterApiError(404, lastError));
-    }
-    if (provider === 'openai') {
-        const response = await fetch('https://api.openai.com/v1/responses', {
-            method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${apiKey}` },
-            body: JSON.stringify({ model, instructions: prompt, input })
-        });
-        const data = await response.json();
-        if (!response.ok) throw new Error(data.error?.message || `HTTP ${response.status}`);
-        return (data.output || []).flatMap(item => item.content || []).filter(item => item.type === 'output_text').map(item => item.text).join('\n');
-    }
-    const response = await fetch('https://api.anthropic.com/v1/messages', {
-        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'anthropic-dangerous-direct-browser-access': 'true' },
-        body: JSON.stringify({ model, max_tokens: 4096, system: prompt, messages: [{ role: 'user', content: input }] })
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.error?.message || `HTTP ${response.status}`);
-    return (data.content || []).filter(item => item.type === 'text').map(item => item.text).join('\n');
-}
-
-function formatterApiError(status, raw) {
-    try { return JSON.parse(raw).error?.message || `HTTP ${status}`; } catch (_) { return `HTTP ${status}: ${raw || '요청 실패'}`; }
-}
-
 async function generateFormattedAd() {
-    initializeFormatter();
+    await initializeFormatter();
     const input = document.getElementById('formatter-input').value.trim();
-    const provider = document.getElementById('formatter-provider').value;
     if (!input) return showToast('원본 매물 정보를 입력해 주세요.', 'warning');
-    let apiKey;
-    try {
-        apiKey = normalizeFormatterApiKey(document.getElementById('formatter-api-key').value, provider);
-        document.getElementById('formatter-api-key').value = apiKey;
-    } catch (error) {
+    const provider = document.getElementById('formatter-provider').value;
+    if (!document.getElementById('formatter-api-key').value.trim() && !formatterProviderSettings[provider]?.hasApiKey) {
         document.getElementById('formatter-settings').classList.remove('hidden');
-        return showToast(error.message, 'warning');
+        return showToast('선택한 공급자의 API 키를 입력해 주세요.', 'warning');
     }
-    if (!saveFormatterSettings(false)) return;
+    if (!await saveFormatterSettings(false)) return showToast('사이트 ID 설정을 저장하지 못했습니다.', 'warning');
     const button = document.getElementById('formatter-generate-btn');
     button.disabled = true; button.textContent = '변환 중...';
     try {
-        const result = await callFormatterApi(provider, apiKey, document.getElementById('formatter-model').value, document.getElementById('formatter-prompt').value.trim() || FORMATTER_DEFAULT_PROMPT, input, document.getElementById('formatter-web-search').checked);
+        const response = await formatterRequest('/api/formatter-generate', {
+            method: 'POST',
+            body: JSON.stringify({ input })
+        });
+        const result = response.result || '';
         let [title, ...contentParts] = result.split('---SPLIT---');
         title = title.replace(/^■제목\s*:\s*/u, '').trim();
         const content = (contentParts.length ? contentParts.join('---SPLIT---') : result).trim().replace(/평형/g, 'py').replace(/평(?=\s|\n|$)/g, 'py');

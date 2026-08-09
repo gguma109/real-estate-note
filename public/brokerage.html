@@ -564,7 +564,7 @@
                                     <button type="button" onclick="toggleFormatterApiKey()" class="px-3 rounded-lg border bg-white text-xs font-bold">보기</button>
                                     <button type="button" onclick="clearFormatterApiKey()" class="px-3 rounded-lg border border-red-200 bg-red-50 text-red-600 text-xs font-bold">삭제</button>
                                 </div>
-                                <label class="mt-2 flex items-center gap-2 text-xs text-gray-600"><input id="formatter-save-key" type="checkbox" checked> 이 브라우저에 API 키 저장</label>
+                                <p id="formatter-api-key-status" class="mt-2 text-xs text-gray-500">로그인한 사이트 ID에 API 키가 자동 저장됩니다.</p>
                             </div>
                             <label id="formatter-search-wrap" class="flex items-center gap-2 text-xs text-gray-700"><input id="formatter-web-search" type="checkbox"> 주소 주변 시설·개발 호재 웹 검색 사용 (Gemini 결제 설정 필요)</label>
                             <div>
@@ -576,7 +576,7 @@
                                     </div>
                                 </div>
                                 <textarea id="formatter-prompt" rows="12" class="w-full border border-gray-200 rounded-lg px-3 py-2 text-xs leading-relaxed resize-y" placeholder="AI가 따를 광고문 작성 규칙을 입력하세요."></textarea>
-                                <p class="text-[11px] text-gray-400 mt-1">프롬프트도 이 브라우저에만 저장됩니다.</p>
+                                <p class="text-[11px] text-gray-400 mt-1">API 키와 프롬프트는 로그인한 사이트 ID에 저장되어 다른 컴퓨터에서도 자동으로 불러옵니다.</p>
                             </div>
                         </div>
 
@@ -795,7 +795,7 @@
         });
 
         // 사용자가 Google 로그인 성공 시 트리거됩니다.
-        function handleCredentialResponse(response) {
+        async function handleCredentialResponse(response) {
             console.log("Google Login Response Received", response);
             
             const credential = response.credential;
@@ -815,6 +815,10 @@
 
                 localStorage.setItem('auth_token', currentUserId);
                 localStorage.setItem('user_email', currentUserEmail);
+
+                if (typeof createFormatterSession === 'function') {
+                    await createFormatterSession(credential);
+                }
 
                 const userDisplay = document.getElementById('user-display');
                 if (userDisplay) {
@@ -840,7 +844,10 @@
             checkLoginState();
         }
 
-        function handleLogout() {
+        async function handleLogout() {
+            if (typeof destroyFormatterSession === 'function') {
+                await destroyFormatterSession();
+            }
             localStorage.removeItem('auth_token');
             localStorage.removeItem('user_email');
             currentUserId = null;
