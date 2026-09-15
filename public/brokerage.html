@@ -565,6 +565,10 @@
                                     <button type="button" onclick="clearFormatterApiKey()" class="px-3 rounded-lg border border-red-200 bg-red-50 text-red-600 text-xs font-bold">삭제</button>
                                 </div>
                                 <p id="formatter-api-key-status" class="mt-2 text-xs text-gray-500">로그인한 사이트 ID에 API 키가 자동 저장됩니다.</p>
+                                <div id="formatter-google-login" class="hidden mt-3">
+                                    <p class="text-xs text-red-500 mb-2">양식변환기 설정을 저장하려면 Google 인증을 다시 연결해 주세요.</p>
+                                    <div id="formatter-google-login-button"></div>
+                                </div>
                             </div>
                             <label id="formatter-search-wrap" class="flex items-center gap-2 text-xs text-gray-700"><input id="formatter-web-search" type="checkbox"> 주소 주변 시설·개발 호재 웹 검색 사용 (Gemini 결제 설정 필요)</label>
                             <div>
@@ -796,8 +800,6 @@
 
         // 사용자가 Google 로그인 성공 시 트리거됩니다.
         async function handleCredentialResponse(response) {
-            console.log("Google Login Response Received", response);
-            
             const credential = response.credential;
             if (!credential) {
                 console.error("No credential in response");
@@ -808,7 +810,6 @@
             try {
                 const payloadStr = atob(credential.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'));
                 const payload = JSON.parse(payloadStr);
-                console.log("JWT Payload", payload);
 
                 currentUserId = payload.sub;
                 currentUserEmail = payload.email;
@@ -817,7 +818,10 @@
                 localStorage.setItem('user_email', currentUserEmail);
 
                 if (typeof createFormatterSession === 'function') {
-                    await createFormatterSession(credential);
+                    const formatterLogin = await createFormatterSession(credential);
+                    if (!formatterLogin) {
+                        showToast('양식변환기 인증을 연결하지 못했습니다. 설정 화면의 오류 안내를 확인해 주세요.', 'warning');
+                    }
                 }
 
                 const userDisplay = document.getElementById('user-display');

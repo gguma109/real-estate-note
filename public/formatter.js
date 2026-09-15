@@ -57,6 +57,26 @@ let formatterInitialized = false;
 let formatterInitializationPromise = null;
 let formatterAccountReady = false;
 let formatterProviderSettings = {};
+let formatterSessionError = null;
+
+function showFormatterGoogleLogin(message) {
+    const status = document.getElementById('formatter-api-key-status');
+    const login = document.getElementById('formatter-google-login');
+    if (!status || !login) return;
+    status.textContent = message;
+    status.className = 'mt-2 text-xs text-red-500';
+    login.classList.remove('hidden');
+    const button = document.getElementById('formatter-google-login-button');
+    if (button && !button.hasChildNodes() && window.google?.accounts?.id) {
+        google.accounts.id.renderButton(button, {
+            type: 'standard', theme: 'outline', size: 'medium', text: 'signin_with'
+        });
+    }
+}
+
+function hideFormatterGoogleLogin() {
+    document.getElementById('formatter-google-login')?.classList.add('hidden');
+}
 
 function normalizeFormatterApiKey(rawKey, provider) {
     const cleaned = String(rawKey || '').trim().replace(/[\u200B-\u200D\uFEFF]/g, '');
@@ -96,12 +116,30 @@ async function createFormatterSession(credential) {
             body: JSON.stringify({ credential })
         });
         formatterAccountReady = true;
+        formatterSessionError = null;
         formatterInitialized = false;
         formatterInitializationPromise = null;
-        return true;
+        hideFormatterGoogleLogin();
+        if (!document.getElementById('content-formatter')?.classList.contains('hidden')) {
+            const pendingApiKey = document.getElementById('formatter-api-key').value;
+            const pendingProvider = document.getElementById('formatter-provider').value;
+            const pendingPrompt = document.getElementById('formatter-prompt').value;
+            await initializeFormatter();
+            if (pendingApiKey) {
+                document.getElementById('formatter-provider').value = pendingProvider;
+                updateFormatterProviderUI();
+                document.getElementById('formatter-api-key').value = pendingApiKey;
+            }
+            if (pendingPrompt && pendingPrompt !== FORMATTER_DEFAULT_PROMPT) {
+                document.getElementById('formatter-prompt').value = pendingPrompt;
+            }
+        }
+        return formatterAccountReady;
     } catch (error) {
         console.error('양식변환기 로그인 세션 생성 실패', error);
         formatterAccountReady = false;
+        formatterSessionError = error.message;
+        showFormatterGoogleLogin(`Google 인증 연결 실패: ${error.message}`);
         return false;
     }
 }
@@ -113,6 +151,7 @@ async function destroyFormatterSession() {
         console.error('양식변환기 로그인 세션 종료 실패', error);
     } finally {
         formatterAccountReady = false;
+        formatterSessionError = null;
         formatterInitialized = false;
         formatterInitializationPromise = null;
         formatterProviderSettings = {};
@@ -167,6 +206,9 @@ async function migrateLegacyFormatterSettings(settings) {
 
 async function loadFormatterSettings() {
     const status = document.getElementById('formatter-api-key-status');
+    const pendingApiKey = document.getElementById('formatter-api-key').value;
+    const pendingProvider = document.getElementById('formatter-provider').value;
+    const pendingPrompt = document.getElementById('formatter-prompt').value;
     status.textContent = '사이트 ID의 설정을 불러오는 중입니다...';
     try {
         let settings = await formatterRequest('/api/formatter-settings');
@@ -184,10 +226,23 @@ async function loadFormatterSettings() {
         document.getElementById('formatter-prompt').value = FORMATTER_DEFAULT_PROMPT;
         document.getElementById('formatter-web-search').checked = false;
         updateFormatterProviderUI();
-        status.textContent = error.status === 401
-            ? '사이트 ID 설정을 사용하려면 로그아웃 후 Google로 다시 로그인해 주세요.'
-            : `설정을 불러오지 못했습니다: ${error.message}`;
-        status.className = 'mt-2 text-xs text-red-500';
+        if (pendingApiKey && FORMATTER_MODELS[pendingProvider]) {
+            document.getElementById('formatter-provider').value = pendingProvider;
+            updateFormatterProviderUI();
+            document.getElementById('formatter-api-key').value = pendingApiKey;
+        }
+        if (pendingPrompt && pendingPrompt !== FORMATTER_DEFAULT_PROMPT) {
+            document.getElementById('formatter-prompt').value = pendingPrompt;
+        }
+        if (error.status === 401) {
+            showFormatterGoogleLogin(formatterSessionError
+                ? `Google 인증 연결 실패: ${formatterSessionError}`
+                : 'Google 인증을 다시 연결하면 사이트 ID 설정을 사용할 수 있습니다.');
+        } else {
+            status.textContent = `설정을 불러오지 못했습니다: ${error.message}`;
+            status.className = 'mt-2 text-xs text-red-500';
+        }
+        formatterInitialized = false;
     }
 }
 
@@ -241,7 +296,10 @@ async function clearFormatterApiKey() {
 
 async function saveFormatterSettings(showMessage = true, clearApiKey = false) {
     if (!formatterAccountReady) {
-        if (showMessage) showToast('사이트 ID로 다시 로그인해 주세요.', 'warning');
+        showFormatterGoogleLogin(formatterSessionError
+            ? `Google 인증 연결 실패: ${formatterSessionError}`
+            : 'Google 인증을 다시 연결한 뒤 설정을 저장해 주세요.');
+        if (showMessage) showToast('양식변환기 Google 인증을 연결해 주세요.', 'warning');
         return false;
     }
     const provider = document.getElementById('formatter-provider').value;
@@ -273,6 +331,10 @@ async function saveFormatterSettings(showMessage = true, clearApiKey = false) {
         if (showMessage) showToast(clearApiKey ? '사이트 ID에 저장된 API 키를 삭제했습니다.' : '사이트 ID에 API 및 프롬프트 설정을 저장했습니다.', 'success');
         return true;
     } catch (error) {
+        if (error.status === 401) {
+            formatterAccountReady = false;
+            showFormatterGoogleLogin('양식변환기 세션이 만료되었습니다. Google 인증을 다시 연결해 주세요.');
+        }
         if (showMessage) showToast(`설정 저장 실패: ${error.message}`, 'warning');
         return false;
     }
