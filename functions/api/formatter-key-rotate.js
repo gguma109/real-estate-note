@@ -28,6 +28,16 @@ async function decryptableWith(ciphertext, userId, provider, secret) {
     }
 }
 
+export function onRequestGet(context) {
+    return Response.json({
+        routeActive: true,
+        hostAllowed: ALLOWED_HOSTS.has(new URL(context.request.url).hostname),
+        migrationTokenConfigured: typeof context.env.FORMATTER_MIGRATION_TOKEN === 'string',
+        sharedSecretConfigured: typeof context.env.FORMATTER_SETTINGS_SHARED_SECRET === 'string',
+        legacySecretConfigured: typeof context.env.FORMATTER_SETTINGS_SECRET === 'string'
+    }, { headers: { 'Cache-Control': 'no-store' } });
+}
+
 export async function onRequestPost(context) {
     const hostname = new URL(context.request.url).hostname;
     if (!ALLOWED_HOSTS.has(hostname) || !authorized(context.request, context.env)) {
