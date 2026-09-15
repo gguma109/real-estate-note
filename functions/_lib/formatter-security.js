@@ -127,8 +127,7 @@ export async function requireFormatterUser(context) {
     return String(session.user_id);
 }
 
-async function formatterEncryptionKey(env) {
-    const secret = env.FORMATTER_SETTINGS_SECRET;
+async function formatterEncryptionKey(secret) {
     if (typeof secret !== 'string' || secret.length < 32) {
         throw new FormatterHttpError(503, '양식변환기 보안 키가 설정되지 않았습니다.');
     }
@@ -139,7 +138,7 @@ async function formatterEncryptionKey(env) {
 export async function encryptFormatterApiKey(apiKey, userId, provider, env) {
     const iv = new Uint8Array(12);
     crypto.getRandomValues(iv);
-    const key = await formatterEncryptionKey(env);
+    const key = await formatterEncryptionKey(env.FORMATTER_SETTINGS_SHARED_SECRET || env.FORMATTER_SETTINGS_SECRET);
     const ciphertext = await crypto.subtle.encrypt(
         { name: 'AES-GCM', iv, additionalData: encoder.encode(`${userId}:${provider}`) },
         key,
@@ -153,22 +152,27 @@ export async function decryptFormatterApiKey(value, userId, provider, env) {
     if (version !== 'v1' || !ivValue || !ciphertextValue) {
         throw new FormatterHttpError(500, '저장된 API 키 형식이 올바르지 않습니다.');
     }
-    try {
-        const key = await formatterEncryptionKey(env);
-        const plaintext = await crypto.subtle.decrypt(
-            {
-                name: 'AES-GCM',
-                iv: decodeBase64Url(ivValue),
-                additionalData: encoder.encode(`${userId}:${provider}`)
-            },
-            key,
-            decodeBase64Url(ciphertextValue)
-        );
-        return new TextDecoder().decode(plaintext);
-    } catch (error) {
-        if (error instanceof FormatterHttpError) throw error;
-        throw new FormatterHttpError(500, '저장된 API 키를 복호화할 수 없습니다.');
+    const secrets = [env.FORMATTER_SETTINGS_SHARED_SECRET, env.FORMATTER_SETTINGS_SECRET]
+        .filter((secret, index, all) => secret && all.indexOf(secret) === index);
+    if (!secrets.length) await formatterEncryptionKey(null);
+    for (const secret of secrets) {
+        try {
+            const key = await formatterEncryptionKey(secret);
+            const plaintext = await crypto.subtle.decrypt(
+                {
+                    name: 'AES-GCM',
+                    iv: decodeBase64Url(ivValue),
+                    additionalData: encoder.encode(`${userId}:${provider}`)
+                },
+                key,
+                decodeBase64Url(ciphertextValue)
+            );
+            return new TextDecoder().decode(plaintext);
+        } catch (error) {
+            if (error instanceof FormatterHttpError) throw error;
+        }
     }
+    throw new FormatterHttpError(500, '저장된 API 키를 복호화할 수 없습니다.');
 }
 
 export function formatterErrorResponse(error) {
