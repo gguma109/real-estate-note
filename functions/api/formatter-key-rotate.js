@@ -10,7 +10,9 @@ const ALLOWED_HOSTS = new Set([
 ]);
 
 function authorized(request, env) {
-    const token = env.FORMATTER_MIGRATION_TOKEN;
+    const token = typeof env.FORMATTER_MIGRATION_TOKEN === 'string'
+        ? env.FORMATTER_MIGRATION_TOKEN.trim()
+        : null;
     if (typeof token !== 'string' || token.length < 32) return false;
     const actual = encoder.encode(request.headers.get('Authorization') || '');
     const expected = encoder.encode(`Bearer ${token}`);
