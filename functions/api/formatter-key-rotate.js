@@ -33,6 +33,11 @@ export function onRequestGet(context) {
         routeActive: true,
         hostAllowed: ALLOWED_HOSTS.has(new URL(context.request.url).hostname),
         migrationTokenConfigured: typeof context.env.FORMATTER_MIGRATION_TOKEN === 'string',
+        migrationTokenLength: typeof context.env.FORMATTER_MIGRATION_TOKEN === 'string'
+            ? context.env.FORMATTER_MIGRATION_TOKEN.trim().length
+            : 0,
+        authorizationHeaderPresent: context.request.headers.has('Authorization'),
+        authorizationMatched: authorized(context.request, context.env),
         sharedSecretConfigured: typeof context.env.FORMATTER_SETTINGS_SHARED_SECRET === 'string',
         legacySecretConfigured: typeof context.env.FORMATTER_SETTINGS_SECRET === 'string'
     }, { headers: { 'Cache-Control': 'no-store' } });
