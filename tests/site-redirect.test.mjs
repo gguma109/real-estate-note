@@ -19,6 +19,7 @@ test('APIs and the new site continue without redirect', () => {
     const next = () => new Response('next');
     for (const url of [
         'https://move-out-confirmation.pages.dev/api/formatter-settings',
+        'https://move-out-confirmation.pages.dev/brokerage?stay-on-moveout=1',
         'https://real-estate-note.pages.dev/brokerage'
     ]) {
         const response = middleware.onRequest({ request: new Request(url), next });
