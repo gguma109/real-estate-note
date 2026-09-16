@@ -1,18 +1,18 @@
-name = "move-out-confirmation"
+name = "dealbook"
 pages_build_output_dir = "./public"
 compatibility_date = "2024-02-26"
 
 [vars]
 GOOGLE_CLIENT_ID = "555437749423-ge2amot938lnbech4141o9cdogbcrvrr.apps.googleusercontent.com"
-# FORMATTER_SETTINGS_SECRET는 Cloudflare 비밀 변수로 별도 설정합니다.
+# 테스트 환경 전용 암호화 비밀 변수는 Cloudflare에 별도 설정합니다.
 
 [[d1_databases]]
 binding = "DB"
-database_name = "rental-db"
-database_id = "2c5364c5-2eb0-4661-b9ed-3c6863e3623e"
+database_name = "dealbook-staging-db"
+database_id = "55ad8a08-6652-4ada-a066-a2425f8b9e0f"
 migrations_dir = "./migrations"
 
 [[d1_databases]]
 binding = "JEJU_DB"
-database_name = "real-estate-db"
-database_id = "41599b93-23a2-4cc9-ad90-886be537058c"
+database_name = "dealbook-staging-jeju-db"
+database_id = "e15718dc-b421-4d30-890a-34f788ea34c0"
