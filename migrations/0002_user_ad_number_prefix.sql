@@ -1,0 +1,1 @@
+ALTER TABLE users ADD COLUMN ad_number_prefix TEXT NOT NULL DEFAULT 'JW';

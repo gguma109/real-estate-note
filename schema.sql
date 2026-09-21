@@ -2,6 +2,8 @@ CREATE TABLE IF NOT EXISTS users (
     id TEXT PRIMARY KEY,
     email TEXT UNIQUE NOT NULL,
     nickname TEXT,
+    ad_number_prefix TEXT NOT NULL DEFAULT 'JW',
+    ad_number_ranges TEXT,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
 
