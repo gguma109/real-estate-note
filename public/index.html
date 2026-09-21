@@ -115,6 +115,13 @@
             </a>
         </div>
 
+        <button id="announcement-button" type="button" onclick="openAnnouncements()"
+            class="mt-7 inline-flex items-center gap-2 rounded-full border border-blue-100 bg-white/80 px-4 py-2 text-xs font-bold text-blue-700 shadow-sm transition hover:bg-white hover:shadow-md">
+            <span>📢 공지사항</span>
+            <span id="current-version" class="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] text-blue-600">v1.1.0</span>
+            <span id="announcement-unread" class="hidden h-2 w-2 rounded-full bg-red-500" aria-label="새 공지"></span>
+        </button>
+
         <div class="mt-12 text-center flex flex-col items-center gap-1.5">
             <div class="text-[11px] font-bold text-gray-400/80 tracking-wide uppercase">
                 Created by GGUMA
@@ -123,6 +130,22 @@
                 <p>보안 연결됨 &middot; Cloudflare D1 Sync</p>
             </div>
         </div>
+    </div>
+
+    <div id="announcement-modal" class="hidden fixed inset-0 z-50 items-center justify-center bg-slate-950/50 p-4"
+        onclick="if (event.target === this) closeAnnouncements()">
+        <section class="flex max-h-[85vh] w-full max-w-lg flex-col overflow-hidden rounded-3xl bg-white shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="announcement-title">
+            <header class="flex items-center justify-between border-b border-gray-100 px-5 py-4">
+                <div>
+                    <p class="text-[11px] font-black uppercase tracking-[0.2em] text-blue-500">Release notes</p>
+                    <h2 id="announcement-title" class="mt-1 text-xl font-black text-gray-900">공지사항</h2>
+                </div>
+                <button type="button" onclick="closeAnnouncements()" class="rounded-full p-2 text-2xl font-bold leading-none text-gray-400 hover:bg-gray-100 hover:text-gray-700" aria-label="공지사항 닫기">&times;</button>
+            </header>
+            <div id="announcement-list" class="flex-1 space-y-4 overflow-y-auto bg-gray-50 p-4">
+                <div class="py-10 text-center text-sm font-bold text-gray-400">공지사항을 불러오는 중입니다.</div>
+            </div>
+        </section>
     </div>
 
     <style>
@@ -137,5 +160,79 @@
             }
         }
     </style>
+    <script>
+        let announcementData = null;
+
+        function escapeAnnouncementHtml(value) {
+            return String(value ?? '')
+                .replaceAll('&', '&amp;')
+                .replaceAll('<', '&lt;')
+                .replaceAll('>', '&gt;')
+                .replaceAll('"', '&quot;')
+                .replaceAll("'", '&#039;');
+        }
+
+        function renderAnnouncements() {
+            const list = document.getElementById('announcement-list');
+            const announcements = announcementData?.announcements || [];
+            if (!announcements.length) {
+                list.innerHTML = '<div class="py-10 text-center text-sm font-bold text-gray-400">등록된 공지사항이 없습니다.</div>';
+                return;
+            }
+
+            list.innerHTML = announcements.map((notice, index) => `
+                <article class="rounded-2xl border ${index === 0 ? 'border-blue-200 bg-white shadow-sm' : 'border-gray-200 bg-white/80'} p-5">
+                    <div class="mb-3 flex flex-wrap items-center gap-2">
+                        <span class="rounded-full ${index === 0 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'} px-2.5 py-1 text-[11px] font-black">v${escapeAnnouncementHtml(notice.version)}</span>
+                        ${index === 0 ? '<span class="rounded-full bg-red-50 px-2 py-1 text-[10px] font-black text-red-500">NEW</span>' : ''}
+                        <time class="ml-auto text-[11px] font-semibold text-gray-400">${escapeAnnouncementHtml(notice.date)}</time>
+                    </div>
+                    <h3 class="text-base font-black text-gray-900">${escapeAnnouncementHtml(notice.title)}</h3>
+                    <p class="mt-2 text-sm leading-relaxed text-gray-500">${escapeAnnouncementHtml(notice.summary)}</p>
+                    <ul class="mt-4 space-y-2">
+                        ${(notice.changes || []).map(change => `<li class="flex gap-2 text-sm leading-relaxed text-gray-700"><span class="mt-0.5 text-blue-500">✓</span><span>${escapeAnnouncementHtml(change)}</span></li>`).join('')}
+                    </ul>
+                </article>
+            `).join('');
+        }
+
+        async function loadAnnouncements() {
+            try {
+                const response = await fetch('/announcements.json', { cache: 'no-store' });
+                if (!response.ok) throw new Error('공지사항을 불러오지 못했습니다.');
+                announcementData = await response.json();
+                const version = announcementData.currentVersion || announcementData.announcements?.[0]?.version || '1.0.0';
+                document.getElementById('current-version').textContent = `v${version}`;
+                const seenVersion = localStorage.getItem('announcement_seen_version');
+                document.getElementById('announcement-unread').classList.toggle('hidden', seenVersion === version);
+                renderAnnouncements();
+            } catch (error) {
+                console.error(error);
+                document.getElementById('announcement-list').innerHTML = '<div class="py-10 text-center text-sm font-bold text-red-400">공지사항을 불러오지 못했습니다.</div>';
+            }
+        }
+
+        function openAnnouncements() {
+            const modal = document.getElementById('announcement-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            const version = announcementData?.currentVersion;
+            if (version) {
+                localStorage.setItem('announcement_seen_version', version);
+                document.getElementById('announcement-unread').classList.add('hidden');
+            }
+        }
+
+        function closeAnnouncements() {
+            const modal = document.getElementById('announcement-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') closeAnnouncements();
+        });
+        loadAnnouncements();
+    </script>
 </body>
 </html>
