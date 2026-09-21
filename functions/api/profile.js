@@ -41,10 +41,10 @@ export async function onRequestPost(context) {
         await env.DB.prepare("INSERT OR IGNORE INTO users (id, email) VALUES (?, ?)").bind(token, body.email).run();
 
         const nickname = typeof body.nickname === 'string' ? body.nickname.trim() : '';
-        const adNumberPrefix = String(body.ad_number_prefix || 'JW').trim().toUpperCase();
+        const adNumberPrefix = String(body.ad_number_prefix || 'JW').trim();
 
-        if (!/^[A-Z0-9]{1,12}$/.test(adNumberPrefix)) {
-            return new Response(JSON.stringify({ error: "매물번호 앞자리는 영문 또는 숫자 1~12자로 입력해 주세요." }), {
+        if (!/^[A-Za-z0-9]{1,12}$/.test(adNumberPrefix)) {
+            return new Response(JSON.stringify({ error: "매물번호 앞자리는 영문 대·소문자 또는 숫자 1~12자로 입력해 주세요." }), {
                 status: 400,
                 headers: { 'Content-Type': 'application/json' }
             });
