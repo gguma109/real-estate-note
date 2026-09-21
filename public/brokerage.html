@@ -272,7 +272,7 @@
                     <h1 class="text-[1.1rem] font-bold tracking-wide flex items-center gap-2 mx-auto">부동산 중개 앱 <span
                             id="user-display"
                             class="text-[0.7rem] font-medium ml-1 opacity-80 cursor-pointer hover:underline"
-                            title="클릭하여 닉네임 변경" onclick="changeNickname()"></span></h1>
+                            title="클릭하여 회원정보 수정" onclick="openMemberProfileModal()"></span></h1>
                     <button onclick="handleLogout()"
                         class="absolute right-4 text-xs text-blue-200 hover:text-white font-bold bg-blue-800/50 px-3 py-1.5 rounded-md transition-colors">로그아웃</button>
                 </header>
@@ -449,7 +449,9 @@
                                     class="w-full bg-white border border-gray-200 rounded-xl px-10 py-3 text-sm outline-none focus:border-orange-500 shadow-sm transition-all">
                                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">🔍</span>
                             </div>
-                            
+                            <button type="button" onclick="openAdNumberRangeModal()" class="shrink-0 rounded-xl border border-orange-200 bg-orange-50 px-3 text-xs font-black text-orange-700 shadow-sm hover:bg-orange-100">
+                                번호 구간 설정
+                            </button>
                         </div>
                         
                         <!-- Dropdown Filters -->
@@ -633,6 +635,60 @@
     </div>
     </div>
 
+    <!-- ===== 회원정보 수정 ===== -->
+    <div id="member-profile-modal" class="hidden fixed inset-0 z-[100] bg-black/50 px-4 items-center justify-center" onclick="if (event.target === this) closeMemberProfileModal()">
+        <div class="w-full max-w-sm rounded-2xl bg-white p-5 shadow-2xl">
+            <div class="mb-5 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-black text-gray-800">회원정보 수정</h2>
+                    <p class="mt-1 text-xs text-gray-500">계정에 저장되어 다른 기기에서도 동일하게 적용됩니다.</p>
+                </div>
+                <button type="button" onclick="closeMemberProfileModal()" class="text-2xl font-bold text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <div class="space-y-4">
+                <div>
+                    <label for="profile-nickname" class="mb-1 block text-xs font-bold text-gray-600">닉네임</label>
+                    <input id="profile-nickname" type="text" maxlength="30" class="w-full rounded-xl border border-gray-200 px-3 py-2 outline-none focus:border-primary" placeholder="닉네임">
+                </div>
+                <div>
+                    <label for="profile-ad-prefix" class="mb-1 block text-xs font-bold text-gray-600">매물번호 앞자리</label>
+                    <div class="flex items-center rounded-xl border border-gray-200 bg-white focus-within:border-primary">
+                        <input id="profile-ad-prefix" type="text" maxlength="12" inputmode="text" class="min-w-0 flex-1 border-0 px-3 py-2 uppercase outline-none" placeholder="예: SM 또는 1000">
+                        <span class="border-l border-gray-200 bg-gray-50 px-3 py-2 font-bold text-gray-400">- 숫자</span>
+                    </div>
+                    <p class="mt-1 text-[11px] text-gray-400">영문 또는 숫자만 입력하세요. 뒤 숫자는 매물마다 따로 입력합니다.</p>
+                </div>
+            </div>
+            <div class="mt-6 flex gap-2">
+                <button type="button" onclick="closeMemberProfileModal()" class="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-bold text-gray-500">취소</button>
+                <button type="button" onclick="saveMemberProfile()" class="flex-1 rounded-xl bg-primary py-3 text-sm font-bold text-white">저장</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== 매물번호 구간 설정 ===== -->
+    <div id="ad-number-range-modal" class="hidden fixed inset-0 z-[100] bg-black/50 px-4 items-center justify-center" onclick="if (event.target === this) closeAdNumberRangeModal()">
+        <div class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl">
+            <div class="mb-4 flex items-center justify-between">
+                <div>
+                    <h2 class="text-lg font-black text-gray-800">매물번호 구간 설정</h2>
+                    <p class="mt-1 text-xs text-gray-500">카테고리별 뒷번호의 시작과 끝을 지정하세요.</p>
+                </div>
+                <button type="button" onclick="closeAdNumberRangeModal()" class="text-2xl font-bold text-gray-400 hover:text-gray-600">&times;</button>
+            </div>
+            <div class="mb-2 grid grid-cols-[1fr_85px_12px_85px] items-center gap-1 text-center text-[11px] font-bold text-gray-400">
+                <span class="text-left">카테고리</span><span>시작번호</span><span></span><span>끝번호</span>
+            </div>
+            <div id="ad-number-range-fields" class="space-y-2"></div>
+            <p class="mt-3 text-[11px] text-gray-400">번호 구간은 서로 겹치지 않게 설정해야 합니다.</p>
+            <div class="mt-5 flex gap-2">
+                <button type="button" onclick="resetAdNumberRanges()" class="rounded-xl border border-gray-200 px-3 py-3 text-xs font-bold text-gray-500">기본값</button>
+                <button type="button" onclick="closeAdNumberRangeModal()" class="flex-1 rounded-xl border border-gray-200 py-3 text-sm font-bold text-gray-500">취소</button>
+                <button type="button" onclick="saveAdNumberRanges()" class="flex-1 rounded-xl bg-orange-500 py-3 text-sm font-bold text-white">저장</button>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== TAB: 공유 뷰 (Read-only) ===== -->
     <div id="view-shared"
         class="hidden min-h-screen flex-col bg-white px-5 py-8 animate-fade-in-down w-full absolute top-0 left-0 z-50">
@@ -762,6 +818,17 @@
         // --- 1. 상태, 인증 및 네비게이션 관리 ---
         let currentUserId = null;
         let currentUserEmail = null;
+        let currentProfileNickname = '';
+        let adNumberPrefix = 'JW';
+        const defaultAdNumberRanges = {
+            rooms: [1, 199],
+            commercial: [200, 399],
+            building: [400, 499],
+            house: [500, 599],
+            land: [600, 799],
+            other: [800, 999]
+        };
+        let adNumberRanges = JSON.parse(JSON.stringify(defaultAdNumberRanges));
         let isSyncing = false;
 
         // Notes State
@@ -1020,7 +1087,7 @@
             }
         }
 
-        // --- 1.1 유저 프로필(닉네임) 로드 및 변경 ---
+        // --- 1.1 회원정보(닉네임 및 매물번호 앞자리) ---
         async function loadUserProfile() {
             const token = localStorage.getItem('auth_token');
             if (!token) return;
@@ -1028,6 +1095,9 @@
                 const res = await fetchWithAuth('/api/profile');
                 if (res && res.id) {
                     const displayName = res.nickname || currentUserEmail.split('@')[0];
+                    currentProfileNickname = res.nickname || '';
+                    adNumberPrefix = normalizeAdNumberPrefix(res.ad_number_prefix || 'JW');
+                    adNumberRanges = normalizeAdNumberRanges(res.ad_number_ranges);
                     document.getElementById('user-display').innerText = displayName + ' 님';
                 }
             } catch (e) {
@@ -1035,23 +1105,159 @@
             }
         }
 
-        async function changeNickname() {
-            const currentName = document.getElementById('user-display').innerText.replace(' 님', '');
-            const newName = prompt("변경할 새로운 닉네임을 입력하세요\n(공백으로 두면 기본 구글 이메일 아이디가 사용됩니다.)", currentName);
+        function normalizeAdNumberPrefix(value) {
+            return String(value || 'JW').trim().toUpperCase().replace(/[^A-Z0-9]/g, '') || 'JW';
+        }
 
-            if (newName !== null) {
-                const res = await fetchWithAuth('/api/profile', {
-                    method: 'POST',
-                    body: JSON.stringify({ nickname: newName.trim(), email: currentUserEmail })
+        function formatAdNumber(number) {
+            const value = String(number || '').trim();
+            return value ? `${adNumberPrefix}-${value}` : '';
+        }
+
+        function extractAdNumberSuffix(adNumber) {
+            const value = String(adNumber || '');
+            const separatorIndex = value.lastIndexOf('-');
+            return separatorIndex >= 0 ? value.slice(separatorIndex + 1) : value;
+        }
+
+        function openMemberProfileModal() {
+            document.getElementById('profile-nickname').value = currentProfileNickname;
+            document.getElementById('profile-ad-prefix').value = adNumberPrefix;
+            const modal = document.getElementById('member-profile-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeMemberProfileModal() {
+            const modal = document.getElementById('member-profile-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        async function saveMemberProfile() {
+            const nickname = document.getElementById('profile-nickname').value.trim();
+            const rawPrefix = document.getElementById('profile-ad-prefix').value.trim().toUpperCase();
+            if (!/^[A-Z0-9]{1,12}$/.test(rawPrefix)) {
+                alert('매물번호 앞자리는 영문 또는 숫자 1~12자로 입력해 주세요.');
+                return;
+            }
+
+            const res = await fetchWithAuth('/api/profile', {
+                method: 'POST',
+                body: JSON.stringify({
+                    nickname,
+                    ad_number_prefix: rawPrefix,
+                    email: currentUserEmail
+                })
+            });
+
+            if (res && res.success) {
+                currentProfileNickname = res.nickname || '';
+                adNumberPrefix = normalizeAdNumberPrefix(res.ad_number_prefix);
+                document.querySelectorAll('.ad-number-prefix').forEach(el => {
+                    el.textContent = `${adNumberPrefix}-`;
                 });
+                const displayName = currentProfileNickname || currentUserEmail.split('@')[0];
+                document.getElementById('user-display').innerText = displayName + ' 님';
+                closeMemberProfileModal();
+                alert('회원정보가 저장되었습니다.');
+            } else {
+                alert((res && res.error) || '회원정보 저장 중 오류가 발생했습니다.');
+            }
+        }
 
-                if (res && res.success) {
-                    const displayName = res.nickname || currentUserEmail.split('@')[0];
-                    document.getElementById('user-display').innerText = displayName + ' 님';
-                    alert('닉네임이 성공적으로 변경되었습니다!');
-                } else {
-                    alert('닉네임 변경 중 오류가 발생했습니다.');
+        const adNumberRangeCategories = [
+            ['rooms', '원/투룸·공동주택'],
+            ['commercial', '상가·사무실'],
+            ['building', '건물매매'],
+            ['house', '단독·전원주택'],
+            ['land', '토지'],
+            ['other', '기타']
+        ];
+
+        function normalizeAdNumberRanges(value) {
+            const normalized = {};
+            adNumberRangeCategories.forEach(([key]) => {
+                const range = value && Array.isArray(value[key]) ? value[key] : defaultAdNumberRanges[key];
+                const start = Number(range[0]);
+                const end = Number(range[1]);
+                normalized[key] = Number.isSafeInteger(start) && Number.isSafeInteger(end) && start >= 0 && end >= start
+                    ? [start, end]
+                    : [...defaultAdNumberRanges[key]];
+            });
+            return normalized;
+        }
+
+        function renderAdNumberRangeFields(ranges) {
+            const normalized = normalizeAdNumberRanges(ranges);
+            document.getElementById('ad-number-range-fields').innerHTML = adNumberRangeCategories.map(([key, label]) => `
+                <div class="grid grid-cols-[1fr_85px_12px_85px] items-center gap-1">
+                    <label class="truncate text-xs font-bold text-gray-600">${label}</label>
+                    <input id="ad-range-${key}-start" type="number" min="0" step="1" value="${normalized[key][0]}" class="w-full rounded-lg border border-gray-200 px-2 py-2 text-center text-sm outline-none focus:border-orange-500">
+                    <span class="text-center text-gray-400">~</span>
+                    <input id="ad-range-${key}-end" type="number" min="0" step="1" value="${normalized[key][1]}" class="w-full rounded-lg border border-gray-200 px-2 py-2 text-center text-sm outline-none focus:border-orange-500">
+                </div>
+            `).join('');
+        }
+
+        function openAdNumberRangeModal() {
+            renderAdNumberRangeFields(adNumberRanges);
+            const modal = document.getElementById('ad-number-range-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeAdNumberRangeModal() {
+            const modal = document.getElementById('ad-number-range-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function resetAdNumberRanges() {
+            renderAdNumberRangeFields(defaultAdNumberRanges);
+        }
+
+        function readAdNumberRanges() {
+            const ranges = {};
+            adNumberRangeCategories.forEach(([key]) => {
+                const start = Number(document.getElementById(`ad-range-${key}-start`).value);
+                const end = Number(document.getElementById(`ad-range-${key}-end`).value);
+                if (!Number.isSafeInteger(start) || !Number.isSafeInteger(end) || start < 0 || end < start) {
+                    throw new Error('각 카테고리의 시작번호와 끝번호를 올바르게 입력해 주세요.');
                 }
+                ranges[key] = [start, end];
+            });
+
+            const ordered = Object.entries(ranges).sort((a, b) => a[1][0] - b[1][0]);
+            for (let i = 1; i < ordered.length; i += 1) {
+                if (ordered[i][1][0] <= ordered[i - 1][1][1]) {
+                    throw new Error('카테고리별 번호 구간은 서로 겹칠 수 없습니다.');
+                }
+            }
+            return ranges;
+        }
+
+        async function saveAdNumberRanges() {
+            let ranges;
+            try {
+                ranges = readAdNumberRanges();
+            } catch (error) {
+                alert(error.message);
+                return;
+            }
+
+            const res = await fetchWithAuth('/api/ad-number-settings', {
+                method: 'POST',
+                body: JSON.stringify({ ranges, email: currentUserEmail })
+            });
+            if (res && res.success) {
+                adNumberRanges = normalizeAdNumberRanges(res.ranges);
+                closeAdNumberRangeModal();
+                const category = document.getElementById('editor-ad-category')?.value;
+                if (category) updateAdNoSuggestion(category);
+                alert('매물번호 구간이 저장되었습니다.');
+            } else {
+                alert((res && res.error) || '매물번호 구간을 저장하지 못했습니다.');
             }
         }
 
@@ -2523,7 +2729,7 @@
             const elRoomNo = document.getElementById('ad-field-room_no');
 
             const adNoNum = elAdNo ? elAdNo.value.trim() : '';
-            const adNo = adNoNum ? 'JW-' + adNoNum : '';
+            const adNo = formatAdNumber(adNoNum);
             const address = elAddress ? elAddress.value.trim() : '';
             const roomNo = elRoomNo ? elRoomNo.value.trim() : '';
 
@@ -2549,13 +2755,15 @@
 
         
         function getAdNoBounds(category) {
-            if (category === '원.투.쓰리룸&공동주택') return [1, 199];
-            if (category === '상가/사무실' || category === '상가') return [200, 399];
-            if (category === '건물매매') return [400, 499];
-            if (category === '단독/전원주택') return [500, 599];
-            if (category === '토지') return [600, 799];
-            if (category === '기타') return [800, 999];
-            return [1, 999];
+            if (category === '원.투.쓰리룸&공동주택') return adNumberRanges.rooms;
+            if (category === '상가/사무실' || category === '상가') return adNumberRanges.commercial;
+            if (category === '건물매매') return adNumberRanges.building;
+            if (category === '단독/전원주택') return adNumberRanges.house;
+            if (category === '토지') return adNumberRanges.land;
+            if (category === '기타') return adNumberRanges.other;
+            const starts = Object.values(adNumberRanges).map(range => range[0]);
+            const ends = Object.values(adNumberRanges).map(range => range[1]);
+            return [Math.min(...starts), Math.max(...ends)];
         }
 
         function updateAdNoSuggestion(category) {
@@ -2571,7 +2779,8 @@
             const usedNumbers = new Set();
             ads.forEach(a => {
                 if (a.id !== currentId && a.data && a.data.status !== 'completed' && a.data.ad_no) {
-                    const numPart = a.data.ad_no.replace('JW-', '');
+                    if (!a.data.ad_no.startsWith(`${adNumberPrefix}-`)) return;
+                    const numPart = extractAdNumberSuffix(a.data.ad_no);
                     const n = parseInt(numPart, 10);
                     if (!isNaN(n)) usedNumbers.add(n);
                 }
@@ -2612,8 +2821,8 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1">매물 번호</label>
                                 <div class="flex items-center w-full border border-gray-200 rounded-lg overflow-hidden focus-within:border-orange-500 bg-white">
-                                    <span class="bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">JW-</span>
-                                    <input type="number" id="ad-field-ad_no_num" value="${(data.ad_no || '').replace('JW-', '')}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
+                                    <span class="ad-number-prefix bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">${adNumberPrefix}-</span>
+                                    <input type="number" id="ad-field-ad_no_num" value="${extractAdNumberSuffix(data.ad_no)}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
                                 </div>
                                 <div id="ad-no-suggestion" class="text-[11px] text-blue-600 font-bold mt-1 empty:hidden"></div>
                             </div>
@@ -2758,8 +2967,8 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1">매물 번호</label>
                                 <div class="flex items-center w-full border border-gray-200 rounded-lg overflow-hidden focus-within:border-orange-500 bg-white">
-                                    <span class="bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">JW-</span>
-                                    <input type="number" id="ad-field-ad_no_num" value="${(data.ad_no || '').replace('JW-', '')}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
+                                    <span class="ad-number-prefix bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">${adNumberPrefix}-</span>
+                                    <input type="number" id="ad-field-ad_no_num" value="${extractAdNumberSuffix(data.ad_no)}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
                                 </div>
                                 <div id="ad-no-suggestion" class="text-[11px] text-blue-600 font-bold mt-1 empty:hidden"></div>
                             </div>
@@ -2918,8 +3127,8 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1">매물 번호</label>
                                 <div class="flex items-center w-full border border-gray-200 rounded-lg overflow-hidden focus-within:border-orange-500 bg-white">
-                                    <span class="bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">JW-</span>
-                                    <input type="number" id="ad-field-ad_no_num" value="${(data.ad_no || '').replace('JW-', '')}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
+                                    <span class="ad-number-prefix bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">${adNumberPrefix}-</span>
+                                    <input type="number" id="ad-field-ad_no_num" value="${extractAdNumberSuffix(data.ad_no)}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
                                 </div>
                                 <div id="ad-no-suggestion" class="text-[11px] text-blue-600 font-bold mt-1 empty:hidden"></div>
                             </div>
@@ -3093,8 +3302,8 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1">매물 번호</label>
                                 <div class="flex items-center w-full border border-gray-200 rounded-lg overflow-hidden focus-within:border-orange-500 bg-white">
-                                    <span class="bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">JW-</span>
-                                    <input type="number" id="ad-field-ad_no_num" value="${(data.ad_no || '').replace('JW-', '')}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
+                                    <span class="ad-number-prefix bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">${adNumberPrefix}-</span>
+                                    <input type="number" id="ad-field-ad_no_num" value="${extractAdNumberSuffix(data.ad_no)}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
                                 </div>
                                 <div id="ad-no-suggestion" class="text-[11px] text-blue-600 font-bold mt-1 empty:hidden"></div>
                             </div>
@@ -3181,8 +3390,8 @@
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-1">매물 번호</label>
                                 <div class="flex items-center w-full border border-gray-200 rounded-lg overflow-hidden focus-within:border-orange-500 bg-white">
-                                    <span class="bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">JW-</span>
-                                    <input type="number" id="ad-field-ad_no_num" value="${(data.ad_no || '').replace('JW-', '')}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
+                                    <span class="ad-number-prefix bg-gray-100 text-gray-500 font-bold px-3 py-2 border-r border-gray-200 select-none">${adNumberPrefix}-</span>
+                                    <input type="number" id="ad-field-ad_no_num" value="${extractAdNumberSuffix(data.ad_no)}" class="flex-1 px-3 py-2 outline-none" placeholder="숫자만">
                                 </div>
                                 <div id="ad-no-suggestion" class="text-[11px] text-blue-600 font-bold mt-1 empty:hidden"></div>
                             </div>
@@ -3302,7 +3511,7 @@
                 let key = input.id.replace('ad-field-', '');
                 if (key === 'ad_no_num') {
                     key = 'ad_no';
-                    dynamicData[key] = input.value ? 'JW-' + input.value : '';
+                    dynamicData[key] = formatAdNumber(input.value);
                 } else {
                     dynamicData[key] = input.value;
                 }
@@ -3529,7 +3738,7 @@
                 if (excludedKeys.includes(key)) return;
                 
                 let value = input.value.trim();
-                if (key === 'ad_no' && value) value = 'JW-' + value;
+                if (key === 'ad_no' && value) value = formatAdNumber(value);
                 if (!value) return;
                 
                 // 라벨 찾기
