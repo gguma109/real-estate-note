@@ -886,13 +886,16 @@
                                 </div>
                             </div>
                             <button onclick="copyGasData()" class="w-full bg-primary text-white font-bold py-3 rounded-xl shadow-md active:scale-95 transition-all">📋 가스검침 데이터 복사하기</button>
-                            <div class="mt-4 rounded-xl border border-orange-100 bg-orange-50/60 p-3">
+                            <div class="mt-4">
+                                <button id="gas-room-settings-toggle" type="button" onclick="toggleGasRoomSettings()" aria-expanded="false" aria-controls="gas-room-settings" class="text-xs font-bold text-gray-500 hover:text-orange-700">⚙️ 호실 번호 설정 <span aria-hidden="true">▸</span></button>
+                                <div id="gas-room-settings" class="hidden mt-2 rounded-xl border border-orange-100 bg-orange-50/60 p-3">
                                 <label for="gas-room-list" class="mb-1 block text-xs font-bold text-gray-600">이 건물 호실 번호</label>
                                 <div class="flex items-stretch gap-2">
                                     <textarea id="gas-room-list" rows="2" class="min-w-0 flex-1 resize-y rounded-lg border border-gray-300 bg-white p-2.5 text-xs outline-none focus:border-orange-500" placeholder="예: 101-105, 201-204, 301"></textarea>
                                     <button type="button" onclick="applyGasRoomList()" class="shrink-0 rounded-lg bg-orange-600 px-3 text-xs font-bold text-white hover:bg-orange-700">호실 적용</button>
                                 </div>
                                 <p class="mt-1.5 text-[11px] leading-relaxed text-gray-500">쉼표나 줄바꿈으로 구분하세요. 연속된 호실은 101-105처럼 입력할 수 있습니다. 저장한 검침표마다 목록이 보관됩니다.</p>
+                                </div>
                             </div>
                         </div>
                         <div id="gas-rooms-grid" class="flex flex-col gap-4 overflow-y-auto pb-10">
@@ -2651,6 +2654,9 @@
             document.getElementById('gas-list-view').classList.add('hidden');
             document.getElementById('gas-editor-view').classList.remove('hidden');
             document.getElementById('gas-editor-view').classList.add('flex');
+            document.getElementById('gas-room-settings').classList.add('hidden');
+            document.getElementById('gas-room-settings-toggle').setAttribute('aria-expanded', 'false');
+            document.querySelector('#gas-room-settings-toggle [aria-hidden="true"]').textContent = '▸';
             
             document.getElementById('gas-id').value = gasData ? gasData.id : '';
             
@@ -2838,6 +2844,14 @@
         function getCurrentGasRoomNumbers() {
             const inputs = [...document.querySelectorAll('.gas-input')];
             return inputs.length ? inputs.map(input => input.dataset.room) : gasRoomNumbers;
+        }
+
+        function toggleGasRoomSettings() {
+            const panel = document.getElementById('gas-room-settings');
+            const button = document.getElementById('gas-room-settings-toggle');
+            const expanded = panel.classList.toggle('hidden') === false;
+            button.setAttribute('aria-expanded', String(expanded));
+            button.querySelector('[aria-hidden="true"]').textContent = expanded ? '▾' : '▸';
         }
 
         function applyGasRoomList() {
