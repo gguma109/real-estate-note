@@ -862,6 +862,34 @@
                     <div id="gas-editor-content" class="p-4 flex-1 overflow-y-auto bg-white">
                         <input type="hidden" id="gas-id">
                         <div class="mb-6 space-y-3">
+                            <button type="button" onclick="openGasBuildingSetup()" class="w-full rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-left font-bold text-orange-700 shadow-sm hover:bg-orange-100 active:scale-[0.99]">
+                                <span class="mr-1 text-lg">＋</span> 건물 추가 / 정보 입력
+                                <span class="mt-0.5 block text-[11px] font-medium text-orange-600">건물명·실제 호실 번호·작성 월을 한 번에 설정</span>
+                            </button>
+                            <div id="gas-building-setup-modal" class="hidden fixed inset-0 z-[100] items-center justify-center bg-slate-950/50 p-4">
+                                <section class="w-full max-w-md rounded-2xl bg-white p-5 shadow-2xl" role="dialog" aria-modal="true" aria-labelledby="gas-building-setup-title">
+                                    <h3 id="gas-building-setup-title" class="mb-4 text-lg font-black text-gray-800">건물 추가</h3>
+                                    <div class="space-y-3">
+                                        <div>
+                                            <label for="gas-setup-building-name" class="mb-1 block text-xs font-bold text-gray-600">건물명</label>
+                                            <input id="gas-setup-building-name" type="text" list="gas-building-options" onchange="prefillGasSetupBuilding(this.value)" class="w-full rounded-lg border border-gray-300 p-2.5 text-sm" placeholder="건물명 입력 또는 선택">
+                                        </div>
+                                        <div>
+                                            <label for="gas-setup-room-list" class="mb-1 block text-xs font-bold text-gray-600">실제 호실 번호</label>
+                                            <textarea id="gas-setup-room-list" rows="3" class="w-full resize-y rounded-lg border border-gray-300 p-2.5 text-sm" placeholder="예: 101-103, 105, 201-205"></textarea>
+                                            <p class="mt-1 text-[11px] leading-relaxed text-gray-500">실제 있는 호실만 적어주세요. 쉼표나 줄바꿈으로 구분하고, 연속된 번호는 101-103처럼 줄여 쓸 수 있어요. 예: 4호가 없으면 101-103, 105</p>
+                                        </div>
+                                        <div>
+                                            <label for="gas-setup-date" class="mb-1 block text-xs font-bold text-gray-600">작성 날짜</label>
+                                            <input id="gas-setup-date" type="month" class="w-full rounded-lg border border-gray-300 p-2.5 text-sm">
+                                        </div>
+                                    </div>
+                                    <div class="mt-5 flex gap-2">
+                                        <button type="button" onclick="closeGasBuildingSetup()" class="flex-1 rounded-lg border border-gray-200 py-2.5 text-sm font-bold text-gray-600">취소</button>
+                                        <button type="button" onclick="applyGasBuildingSetup()" class="flex-1 rounded-lg bg-orange-600 py-2.5 text-sm font-bold text-white hover:bg-orange-700">적용</button>
+                                    </div>
+                                </section>
+                            </div>
                             <div>
                                 <label class="block text-xs font-bold text-gray-500 mb-2">건물 유형</label>
                                 <div class="flex gap-2">
@@ -2660,6 +2688,7 @@
             document.getElementById('gas-room-settings').classList.add('hidden');
             document.getElementById('gas-room-settings-toggle').setAttribute('aria-expanded', 'false');
             document.querySelector('#gas-room-settings-toggle [aria-hidden="true"]').textContent = '▸';
+            closeGasBuildingSetup();
             
             document.getElementById('gas-id').value = gasData ? gasData.id : '';
             gasEditorBuildingName = gasData?.building_name || '';
@@ -2848,6 +2877,73 @@
         function getCurrentGasRoomNumbers() {
             const inputs = [...document.querySelectorAll('.gas-input')];
             return inputs.length ? inputs.map(input => input.dataset.room) : gasRoomNumbers;
+        }
+
+        function openGasBuildingSetup() {
+            document.getElementById('gas-setup-building-name').value = document.getElementById('gas-building-name').value;
+            document.getElementById('gas-setup-room-list').value = document.getElementById('gas-room-list').value;
+            const dateValue = document.getElementById('gas-date').value.trim();
+            const dateMatch = dateValue.match(/^(\d{2}|\d{4})[/-](\d{1,2})$/);
+            const year = dateMatch ? (dateMatch[1].length === 2 ? `20${dateMatch[1]}` : dateMatch[1]) : new Date().getFullYear();
+            const month = dateMatch ? dateMatch[2].padStart(2, '0') : String(new Date().getMonth() + 1).padStart(2, '0');
+            document.getElementById('gas-setup-date').value = `${year}-${month}`;
+            const modal = document.getElementById('gas-building-setup-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeGasBuildingSetup() {
+            const modal = document.getElementById('gas-building-setup-modal');
+            if (!modal) return;
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function prefillGasSetupBuilding(buildingName) {
+            const normalizedName = String(buildingName || '').trim().toLocaleLowerCase();
+            const profile = gasMeters.find(item => String(item.building_name || '').trim().toLocaleLowerCase() === normalizedName);
+            if (!profile) return;
+            try {
+                const readings = JSON.parse(profile.readings_data || '{}');
+                const storedRooms = Array.isArray(readings._room_numbers) ? readings._room_numbers : null;
+                const legacyRooms = Object.keys(readings).filter(room => /^\d{1,6}$/.test(room));
+                const roomNumbers = storedRooms
+                    ? parseGasRoomNumbers(storedRooms.join(','))
+                    : [...new Set([...getDefaultGasRoomNumbers(profile.building_type), ...legacyRooms])].sort((a, b) => Number(a) - Number(b));
+                document.getElementById('gas-setup-room-list').value = formatGasRoomNumbers(roomNumbers);
+            } catch (error) {
+                alert('저장된 호실 정보를 불러오지 못했습니다.');
+            }
+        }
+
+        function applyGasBuildingSetup() {
+            const buildingName = document.getElementById('gas-setup-building-name').value.trim();
+            if (!buildingName) {
+                alert('건물명을 입력해 주세요.');
+                return;
+            }
+
+            let roomNumbers;
+            try {
+                roomNumbers = parseGasRoomNumbers(document.getElementById('gas-setup-room-list').value);
+            } catch (error) {
+                alert(error.message);
+                return;
+            }
+
+            const currentName = document.getElementById('gas-building-name').value.trim();
+            const changingBuilding = currentName.toLocaleLowerCase() !== buildingName.toLocaleLowerCase();
+            const hasReadings = [...document.querySelectorAll('.gas-input')].some(input => input.value.trim() !== '');
+            if (changingBuilding && hasReadings && !confirm('건물을 바꾸면 현재 입력한 검침값이 지워집니다. 계속할까요?')) return;
+
+            const monthValue = document.getElementById('gas-setup-date').value;
+            document.getElementById('gas-building-name').value = buildingName;
+            document.getElementById('gas-date').value = monthValue ? `${monthValue.slice(2, 4)}/${monthValue.slice(5, 7)}` : '';
+            document.getElementById('gas-room-list').value = formatGasRoomNumbers(roomNumbers);
+            gasEditorBuildingName = buildingName;
+            gasRoomNumbers = roomNumbers;
+            initGasTab(true, roomNumbers, !changingBuilding);
+            closeGasBuildingSetup();
         }
 
         function renderGasBuildingNameOptions() {
