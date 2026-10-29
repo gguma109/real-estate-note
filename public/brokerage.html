@@ -2342,6 +2342,15 @@
             if (!addr) { alert('소재지를 입력해주세요.'); return; }
             window.open(`https://map.kakao.com/?q=${encodeURIComponent(addr)}`, '_blank');
         }
+        // 디스코는 주소를 링크로 넘겨 검색하는 방식을 지원하지 않아 주소를 복사한 뒤 사이트를 연다.
+        function openDiscoMap() {
+            const addr = document.getElementById('ad-field-address').value;
+            if (!addr) { alert('소재지를 입력해주세요.'); return; }
+            navigator.clipboard.writeText(addr)
+                .then(() => showToast('주소를 복사했습니다. 디스코 검색창에 붙여넣으세요.'))
+                .catch(() => showToast(`주소 복사에 실패했습니다. 직접 입력해 주세요: ${addr}`, 'warning', 6000));
+            window.open('https://www.disco.re/', '_blank');
+        }
 
         function setAdCategoryFilter(category) {
             currentAdCategoryFilter = category;
@@ -2852,6 +2861,7 @@
                                 <div class="flex gap-1">
                                     <button onclick="openNaverMap()" class="text-[10px] bg-[#03C75A] text-white px-2 py-0.5 rounded font-bold shadow-sm">네이버</button>
                                     <button onclick="openKakaoMap()" class="text-[10px] bg-[#FEE500] text-[#191919] px-2 py-0.5 rounded font-bold shadow-sm">카카오</button>
+                                    <button onclick="openDiscoMap()" class="text-[10px] bg-[#0092FF] text-white px-2 py-0.5 rounded font-bold shadow-sm">디스코</button>
                                 </div>
                             </div>
                             <input type="text" id="ad-field-address" value="${data.address || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
@@ -2983,6 +2993,7 @@
                                 <div class="flex gap-1">
                                     <button onclick="openNaverMap()" class="text-[10px] bg-[#03C75A] text-white px-2 py-0.5 rounded font-bold shadow-sm">네이버</button>
                                     <button onclick="openKakaoMap()" class="text-[10px] bg-[#FEE500] text-[#191919] px-2 py-0.5 rounded font-bold shadow-sm">카카오</button>
+                                    <button onclick="openDiscoMap()" class="text-[10px] bg-[#0092FF] text-white px-2 py-0.5 rounded font-bold shadow-sm">디스코</button>
                                 </div>
                             </div>
                             <input type="text" id="ad-field-address" value="${data.address || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
@@ -3158,6 +3169,7 @@
                                 <div class="flex gap-1">
                                     <button onclick="openNaverMap()" class="text-[10px] bg-[#03C75A] text-white px-2 py-0.5 rounded font-bold shadow-sm">네이버</button>
                                     <button onclick="openKakaoMap()" class="text-[10px] bg-[#FEE500] text-[#191919] px-2 py-0.5 rounded font-bold shadow-sm">카카오</button>
+                                    <button onclick="openDiscoMap()" class="text-[10px] bg-[#0092FF] text-white px-2 py-0.5 rounded font-bold shadow-sm">디스코</button>
                                 </div>
                             </div>
                             <input type="text" id="ad-field-address" value="${data.address || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
@@ -3333,6 +3345,7 @@
                                 <div class="flex gap-1">
                                     <button onclick="openNaverMap()" class="text-[10px] bg-[#03C75A] text-white px-2 py-0.5 rounded font-bold shadow-sm">네이버</button>
                                     <button onclick="openKakaoMap()" class="text-[10px] bg-[#FEE500] text-[#191919] px-2 py-0.5 rounded font-bold shadow-sm">카카오</button>
+                                    <button onclick="openDiscoMap()" class="text-[10px] bg-[#0092FF] text-white px-2 py-0.5 rounded font-bold shadow-sm">디스코</button>
                                 </div>
                             </div>
                             <input type="text" id="ad-field-address" value="${data.address || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
@@ -3421,6 +3434,7 @@
                                 <div class="flex gap-1">
                                     <button onclick="openNaverMap()" class="text-[10px] bg-[#03C75A] text-white px-2 py-0.5 rounded font-bold shadow-sm">네이버</button>
                                     <button onclick="openKakaoMap()" class="text-[10px] bg-[#FEE500] text-[#191919] px-2 py-0.5 rounded font-bold shadow-sm">카카오</button>
+                                    <button onclick="openDiscoMap()" class="text-[10px] bg-[#0092FF] text-white px-2 py-0.5 rounded font-bold shadow-sm">디스코</button>
                                 </div>
                             </div>
                             <input type="text" id="ad-field-address" value="${data.address || ''}" class="w-full border border-gray-200 rounded-lg px-3 py-2 outline-none focus:border-orange-500">
